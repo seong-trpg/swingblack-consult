@@ -439,6 +439,7 @@ textarea.field { resize: vertical; line-height: 1.5; }
 .choice.slot.s2.on .c-check { background: var(--slot2-ink); border-color: var(--slot2-ink); }
 .choice.slot.s3.on .c-check { background: var(--slot3-ink); border-color: var(--slot3-ink); }
 .choice.lesson { min-height: 10rem; }
+.btn.keep { margin: 0 0 0.9rem; border-color: var(--primary); color: var(--primary-deep); }
 
 .presets { margin-top: 2rem; padding-top: 1.4rem; border-top: 1px solid var(--line); }
 .presets h2 { font-size: 1.2rem; margin-bottom: 0.3rem; }

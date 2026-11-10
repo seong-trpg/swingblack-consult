@@ -33,6 +33,25 @@
     return 5;
   }
 
+  // 선택한 뒤 넘어갈 단계.
+  // 보통은 아직 안 고른 첫 단계로 간다. '다른 구성 더 담기'로 들어온 동안(b.walk)에는
+  // 이전 선택이 모두 남아 있어도 1단계부터 한 단계씩 넘어간다(바로 견적으로 건너뛰지 않는다).
+  function stepAfter(b) {
+    if (!b.walk) return nextStep(b);
+    var n = b.step + 1;
+    if (n === 4 && b.kind === 'daily') n = 5; // 일일 이용권은 락커 단계가 없다
+    if (n >= 5) {
+      b.walk = false;
+      return selOf(b) ? 5 : nextStep(b);
+    }
+    return n;
+  }
+  // 이전 선택을 바꾸지 않고 넘어가는 버튼(순서대로 넘어가는 동안에만 보인다)
+  function keepBtn(b, has) {
+    return (b.walk && has)
+      ? '<button class="btn ghost wide keep" data-act="b-next">선택 그대로 다음 단계' + IL.icon('next') + '</button>' : '';
+  }
+
   function kindLabel(b) {
     if (b.kind === 'membership') return b.months + '개월';
     if (b.kind === 'daily') return '일일 ' + b.days + '일';
@@ -106,6 +125,10 @@
       html += '<p class="note-line">' + IL.icon('info') + esc(kindLabel(b) + (b.lessonCount ? ' + 레슨 ' + b.lessonMin + '분 ' + b.lessonCount + '회' : '')) +
         ' 구성을 골랐습니다. 시간대를 고르면 가격이 나옵니다.</p>';
     }
+    if (b.walk) {
+      html += '<p class="note-line">' + IL.icon('info') + '이전 구성이 그대로 선택되어 있습니다. 단계마다 바꾸거나 그대로 두고 넘어가세요.</p>' +
+        keepBtn(b, !!b.slot);
+    }
     html += '<div class="choices col">' + [1, 2, 3].map(function (n) {
       var s = P.SLOTS[n];
       return '<button class="choice slot s' + n + (b.slot === n ? ' on' : '') + '" data-act="b-slot" data-v="' + n + '">' +
@@ -137,6 +160,9 @@
       '<div class="seg" role="tablist">' + tabs.map(function (t) {
         return '<button class="' + (b.tab === t[0] ? 'on' : '') + '" data-act="b-tab" data-v="' + t[0] + '">' + t[1] + '</button>';
       }).join('') + '</div>';
+    // 순서대로 넘어가는 동안에는 선택지 위에 '그대로 다음 단계' 버튼을 둔다(스크롤 없이 보이게).
+    html += keepBtn(b, (b.tab === 'membership' && b.kind === 'membership' && !!b.months && b.months !== 1) ||
+      (b.tab === 'coupon' && b.kind === 'coupon' && !!b.coupon));
 
     if (b.tab === 'membership') {
       if (!b.slot) html += '<p class="note-line">' + IL.icon('info') + '1부 기준 가격입니다. 시간대를 고르면 정확한 가격이 나옵니다.</p>';
@@ -232,7 +258,7 @@
       return P.fmt(best);
     }
     var none = b.lessonDone && !b.lessonCount;
-    var html = '<h1 class="q">레슨 받으세요?</h1><p class="q-sub">' + sub + '</p>' +
+    var html = '<h1 class="q">레슨 받으세요?</h1><p class="q-sub">' + sub + '</p>' + keepBtn(b, b.lessonDone) +
       '<div class="choices grid3">' +
       '<button class="choice lesson' + (none ? ' on' : '') + '" data-act="b-lesson-min" data-v="0">' +
       '<span class="c-name">안 받음</span><span class="c-note">타석만 이용합니다. 나중에 레슨만 따로 추가할 수 있습니다.</span>' + CHECK + '</button>' +
@@ -256,7 +282,6 @@
             '<span class="c-note">1회 ' + P.fmt(p.shown / c) + '원 · 유효기간 ' + SB.cfg.validity[mode][c] + '개월</span>' + CHECK + '</button>';
         }).join('') + '</div>';
     }
-
     html += '<aside class="info">' + IL.icon('info') + '<div><b>레슨은 프로님 근무 시간에 예약합니다</b>' +
       '<p>' + esc(SB.scheduleSummary()) + '</p>' +
       '<p>시설은 24시간 운영하지만 레슨은 위 시간에만 받을 수 있습니다.</p>' +
@@ -284,6 +309,7 @@
     }
     return '<h1 class="q">락커 쓰세요?</h1>' +
       '<p class="q-sub">클럽과 신발을 두고 다닐 수 있습니다. 요금은 한 달 기준이고 이용 개월 수만큼 더해집니다.</p>' +
+      keepBtn(b, b.lockerDone) +
       '<div class="locker-wrap">' + SB.media('facility-locker', 'locker', 'locker-art') +
       '<div class="choices col">' + card('none', '안 씀', '장비를 가지고 다닙니다.') + card('top', '상단 락커') + card('bottom', '하단 락커') + '</div></div>';
   }
@@ -385,7 +411,7 @@
     SB.render();
     root.setTimeout(function () {
       if (SB.S.b !== b || SB.S.screen !== 'builder') return;
-      b.step = nextStep(b);
+      b.step = stepAfter(b);
       SB.render();
       if (b.step === 3) SB.sayOnce('lesson');
     }, 380);
@@ -394,12 +420,13 @@
   A['b-step'] = function (d) {
     SB.sfx('click');
     SB.S.b.step = +d.step;
+    if (SB.S.b.step === 5) SB.S.b.walk = false; // 견적으로 직접 가면 순서대로 넘기기를 끝낸다
     SB.render();
     if (SB.S.b.step === 3) SB.sayOnce('lesson');
   };
   A['b-next'] = function () {
     SB.sfx('click');
-    SB.S.b.step = nextStep(SB.S.b);
+    SB.S.b.step = stepAfter(SB.S.b);
     SB.render();
     if (SB.S.b.step === 3) SB.sayOnce('lesson');
   };
@@ -584,11 +611,18 @@
     SB.closeModal();
     added(cur);
   };
+  // 다른 구성 더 담기: 이전 선택은 모두 남긴 채 1단계(시간대)로 돌아가 한 단계씩 다시 넘어간다.
+  function startAnother() {
+    var b = SB.S.b;
+    b.editing = null;
+    b.step = 1;
+    b.walk = true;
+    if (b.kind) b.tab = b.kind;
+    if (SB.S.screen !== 'builder') SB.go('builder'); else SB.render();
+  }
   A['c-more'] = function () {
     SB.closeModal();
-    SB.S.b.editing = null;
-    SB.S.b.step = 2;
-    if (SB.S.screen !== 'builder') SB.go('builder'); else SB.render();
+    startAnother();
   };
   A['c-edit'] = function (d) {
     var c = SB.S.compare.filter(function (x) { return x.id === d.id; })[0];
@@ -634,12 +668,11 @@
     SB.sfx('confirm');
     SB.go('quote');
   };
+  // 비교함 화면의 '다른 구성 담기'도 같은 방식으로 동작한다.
   A['c-new'] = function () {
-    var slot = SB.S.b.slot;
-    SB.S.b = SB.freshBuilder();
-    SB.S.b.slot = slot;
-    SB.S.b.step = slot ? 2 : 1;
     SB.sfx('click');
+    if (SB.S.b.kind) { startAnother(); return; }
+    SB.S.b = SB.freshBuilder();
     SB.go('builder');
   };
 

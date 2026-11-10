@@ -25,7 +25,8 @@
       slot: null, kind: null, months: null, days: 30, coupon: null,
       lessonMin: null, lessonCount: null, lessonDone: false,
       locker: null, lockerDone: false,
-      editing: null
+      editing: null,
+      walk: false // '다른 구성 더 담기' 뒤 1단계부터 한 단계씩 넘어가는 중인지
     };
   }
   function freshSession() {
