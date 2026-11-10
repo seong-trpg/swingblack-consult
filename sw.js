@@ -3,7 +3,7 @@
  * 앱 파일을 고치면 아래 VERSION을 올린다. 올리지 않으면 태블릿이 예전 화면을 보여 줄 수 있다.
  * 온라인일 때는 새 파일을 먼저 받고, 인터넷이 끊기면 저장해 둔 파일로 동작한다.
  */
-const VERSION = 'swingblack-v5';
+const VERSION = 'swingblack-v6';
 // 음성 파일: assets/audio/voice/ 에 실제로 있는 파일만 적는다(없는 파일을 적으면 설치가 실패한다).
 const VOICE = [
   'intro1', 'intro2', 'intro3', 'intro4', 'intro5', 'intro6', 'intro7', 'intro8', 'intro9',

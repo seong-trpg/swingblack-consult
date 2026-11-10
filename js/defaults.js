@@ -8,7 +8,7 @@
   function defaults() {
     var pricing = root.SBPricing.defaultPricing();
     return {
-      schema: 1,
+      schema: 2,
       items: pricing.items,
       validity: pricing.validity,
       couponMonths: pricing.couponMonths,
@@ -101,23 +101,25 @@
           ]
         },
         {
-          id: 'choi-seungwoo', name: '최승우', badge: 'KPGA', asset: 'pros-choi-seungwoo',
+          // 2026-11-10 최승우 프로에서 교체. 근무 시간과 휴무는 받은 자료에 없어 앞 프로의 값을 그대로 두었다(관리자 페이지에서 수정).
+          id: 'son-jimin', name: '손지민', badge: 'KPGA', asset: 'pros-son-jimin',
           start: '14:00', end: '23:00', off: [5, 6],
           awards: [
-            '경상남도지사배 3위',
-            '전라남도 지사배 2위',
-            '전라남도지사배 단체전 2위'
+            '태국 주니어투어 우승 1회'
           ],
           career: [
-            'KPGA 프로',
-            '전) MJ 골프아카데미 소속프로',
-            '전) 메가 골프아카데미 소속프로',
-            '전) 홀인원 골프아카데미 소속프로',
-            '전) 제이로터스 골프아카데미 소속프로',
-            '전) 대성골프연습장 소속프로',
-            'KPGA 챌린지투어 활동 및 레슨',
-            'Team PGA Golf wear',
-            '현) 더 스윙 블랙 검단 골프아카데미 소속프로'
+            'KPGA 프로 입회',
+            'KPGA 투어프로 입회',
+            '스릭슨 투어 활동 (2부, 3부 투어)',
+            '전)GDR청주오송점 소속프로',
+            '전)이룸골프 일산센터 소속프로',
+            '전)아하골프스튜디오 소속프로 및 중,고 주니어 선수반 티칭',
+            '전)더 골드 클래스 일산점 개인레슨',
+            '현)스윙블랙 골프아카데미 소속프로',
+            '한국골프대학교 졸업',
+            '윤석진 프로 TRACKMAN MASTER 인증수료',
+            'VICTER KIM GOLF& DRILL 인증수료',
+            'Rotex motion 교습가 교육 이수'
           ]
         }
       ],

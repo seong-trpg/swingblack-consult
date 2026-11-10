@@ -34,7 +34,22 @@
     var base = root.SBDefaults();
     var raw = read(KEY);
     if (!raw) return base;
-    try { return merge(base, JSON.parse(raw)); } catch (e) { return base; }
+    try { return migrate(merge(base, JSON.parse(raw)), base); } catch (e) { return base; }
+  }
+
+  // 예전 버전에서 저장한 설정을 새 구조로 맞춘다.
+  // 프로 목록 같은 배열은 저장된 값을 통째로 쓰므로, 초기값이 바뀌어도 이미 저장한 기기에는 반영되지 않는다.
+  function migrate(cfg, base) {
+    var from = +cfg.schema || 1;
+    if (from < 2) {
+      // v2 (2026-11-10): 최승우 프로를 손지민 프로로 교체
+      cfg.pros = (cfg.pros || []).map(function (p) {
+        if (p.id !== 'choi-seungwoo') return p;
+        return base.pros.filter(function (b) { return b.id === 'son-jimin'; })[0] || p;
+      });
+    }
+    cfg.schema = base.schema;
+    return cfg;
   }
 
   function history() {
@@ -75,7 +90,7 @@
     var m = path.match(/^items\.(.+)#(price|sale)$/);
     if (m) return root.SBPricing.itemLabel(m[1]) + (m[2] === 'price' ? ' 원가' : ' 할인가');
     var names = {
-      'discount.on': '할인 적용 버튼', 'discount.start': '할인 시작일', 'discount.end': '할인 종료일',
+      'schema': '설정 버전', 'discount.on': '할인 적용 버튼', 'discount.start': '할인 시작일', 'discount.end': '할인 종료일',
       'promos': '홍보 문구', 'pros': '프로 정보', 'facility': '시설 소개 카드', 'guide': '이용 안내',
       'texts.promises': '7가지 약속', 'texts.trust': '신뢰 지표', 'texts.terms': '이용약관 원문',
       'texts.slogan1': '홈 슬로건 1', 'texts.slogan2': '홈 슬로건 2', 'texts.pledge': '다짐 문구',
@@ -131,7 +146,7 @@
     if (!data || data.app !== 'swingblack-consult' || !isObj(data.config) || !isObj(data.config.items)) {
       throw new Error('스윙블랙 상담 앱의 백업 파일이 아닙니다.');
     }
-    var next = merge(root.SBDefaults(), data.config);
+    var next = migrate(merge(root.SBDefaults(), data.config), root.SBDefaults());
     var check = root.SBPricing.validateItems(next.items);
     if (check.errors.length) throw new Error('백업 파일의 가격 값에 오류가 있습니다: ' + check.errors[0]);
     save(next, '백업 파일 불러오기');
