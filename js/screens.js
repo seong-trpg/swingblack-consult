@@ -223,6 +223,20 @@
     }).join('') + '<div class="rail-legend">' + IL.rail({ ranges: [], marks: [0, 6, 12, 18, 24] }) + '</div></div>';
   }
 
+  // 패키지와 단독의 레슨 유효기간 비교 (값은 설정의 유효기간에서 읽는다)
+  function pkgValidity(cfg) {
+    var extra = P.packageExtraList(cfg);
+    if (!extra.length) return '';
+    return '<section class="pkg-valid"><h2 class="sec">패키지로 하면 레슨 기간이 더 깁니다</h2>' +
+      '<p class="q-sub">멤버십(3개월 이상)과 레슨을 함께 하는 패키지는 레슨을 쓸 수 있는 기간을 더 드립니다.</p>' +
+      '<table class="sheet"><thead><tr><th>레슨 횟수</th><th class="r">레슨만 따로</th><th class="r">패키지</th></tr></thead><tbody>' +
+      P.LESSON_COUNTS.map(function (c) {
+        var d = P.packageExtraMonths(c, cfg);
+        return '<tr><th>' + c + '회</th><td class="r">' + cfg.validity.solo[c] + '개월</td>' +
+          '<td class="r"><b>' + cfg.validity.pkg[c] + '개월</b>' + (d ? ' <em class="tag more">+' + d + '개월</em>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></section>';
+  }
+
   SB.screens.lesson = {
     ment: 'pros',
     render: function () {
@@ -235,7 +249,7 @@
       return {
         html: '<h1 class="q">레슨·프로</h1>' +
           '<div class="lcols">' + col(15, cfg.lessonInfo.m15) + col(25, cfg.lessonInfo.m25) + '</div>' +
-          '<p class="payout">' + esc(cfg.lessonInfo.payout) + '</p>' +
+          '<p class="payout">' + esc(cfg.lessonInfo.payout) + '</p>' + pkgValidity(cfg) +
           '<h2 class="sec">소속 프로</h2><div class="pros">' + cfg.pros.map(function (p) {
             return '<button class="pro-card" data-act="pro" data-id="' + esc(p.id) + '">' + proPhoto(p) +
               '<div class="pro-info"><div class="pro-name"><b>' + esc(p.name) + ' 프로</b>' + (p.badge ? '<em>' + esc(p.badge) + '</em>' : '') + '</div>' +

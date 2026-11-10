@@ -67,6 +67,18 @@
     if (!b.lockerDone) return '';
     return b.locker ? P.LOCKERS[b.locker] : '안 씀';
   }
+  // 패키지로 하면 레슨 기간을 더 주는 횟수 안내 (예: "8회·16회는 레슨 기간도 1개월 더 드립니다.")
+  function extraNote() {
+    var list = P.packageExtraList(SB.cfg);
+    if (!list.length) return '';
+    var same = list.every(function (x) { return x.extra === list[0].extra; });
+    var who = list.length === P.LESSON_COUNTS.length ? '패키지 레슨은'
+      : list.map(function (x) { return x.count + '회'; }).join('·') + '는';
+    return who + ' 레슨 기간도 ' + (same ? list[0].extra + '개월 ' : '') + '더 드립니다.';
+  }
+  function extraTag(months) {
+    return months > 0 ? '<em class="tag more">레슨 기간 +' + months + '개월</em>' : '';
+  }
   function slotChip(n) {
     return '<span class="chip s' + n + '">' + P.SLOTS[n].name + '<i>' + P.SLOTS[n].range + '</i></span>';
   }
@@ -129,27 +141,56 @@
       html += '<p class="note-line">' + IL.icon('info') + '이전 구성이 그대로 선택되어 있습니다. 단계마다 바꾸거나 그대로 두고 넘어가세요.</p>' +
         keepBtn(b, !!b.slot);
     }
+    var unfold = b.unfold; // 방금 고른 시간대만 펼침 모션을 넣는다(다시 그릴 때는 넣지 않는다)
+    b.unfold = false;
     html += '<div class="choices col">' + [1, 2, 3].map(function (n) {
-      var s = P.SLOTS[n];
-      return '<button class="choice slot s' + n + (b.slot === n ? ' on' : '') + '" data-act="b-slot" data-v="' + n + '">' +
+      var s = P.SLOTS[n], on = b.slot === n;
+      return '<div class="slot-wrap s' + n + (on ? ' open' : '') + '">' +
+        '<button class="choice slot s' + n + (on ? ' on' : '') + '" data-act="b-slot" data-v="' + n + '" aria-expanded="' + on + '">' +
         '<span class="c-name">' + s.name + '</span><span class="c-time">' + s.range + '</span>' +
         IL.rail({ ranges: [{ from: s.from, to: s.to, cls: 's' + n }] }) +
-        '<span class="c-note">' + SLOT_NOTES[n] + '</span>' + CHECK + '</button>';
+        '<span class="c-note">' + SLOT_NOTES[n] + '</span>' + CHECK + '</button>' +
+        (on ? slotPackages(b, n, unfold) : '') + '</div>';
     }).join('') + '</div>';
-
-    if (!b.kind && !b.editing) {
-      var base = b.slot || 1;
-      html += '<section class="presets"><h2>추천 패키지로 빠르게 시작</h2>' +
-        '<p class="q-sub">' + esc(SB.cfg.texts.builderTagline) + '입니다. 많이 찾는 구성부터 보고 바꿔도 됩니다.</p><div class="preset-row">' +
-        PRESETS.map(function (p) {
-          var q = quoteOf({ kind: 'membership', slot: base, months: p[0], lesson: { min: 15, count: p[1] }, locker: null });
-          var v = P.view(q, useSale());
-          return '<button class="preset" data-act="b-preset" data-m="' + p[0] + '" data-c="' + p[1] + '">' +
-            '<b>' + p[0] + '개월 + 레슨 ' + p[1] + '회</b>' +
-            '<span>' + P.SLOTS[base].name + ' 기준 ' + P.fmt(v.total) + '원</span></button>';
-        }).join('') + '</div></section>';
-    }
     return html;
+  }
+
+  // 고른 시간대 카드가 아래로 넓어지며 보여 주는 추천 패키지.
+  // 패키지를 고르면 바로 견적으로, '선택 안 함'을 고르면 다음 단계로 간다.
+  function slotPackages(b, n, unfold) {
+    var on = useSale();
+    var picked = b.kind === 'membership' && b.lessonMin === 15 && b.lessonDone;
+    var cards = PRESETS.map(function (p) {
+      var q = quoteOf({ kind: 'membership', slot: n, months: p[0], lesson: { min: 15, count: p[1] }, locker: null });
+      var v = P.view(q, on);
+      var sale = on && q.hasAnySale;
+      var sel = picked && b.months === p[0] && b.lessonCount === p[1];
+      return '<button class="choice pkg' + (sel ? ' on' : '') + '" data-act="b-pkg" data-m="' + p[0] + '" data-c="' + p[1] + '">' +
+        '<span class="c-name">' + p[0] + '개월 + 레슨 ' + p[1] + '회</span>' +
+        '<span class="c-note">' + P.SLOTS[n].name + ' ' + p[0] + '개월 · 15분 레슨 ' + p[1] + '회</span>' +
+        '<span class="tags">' + (q.lesson.saving > 0 ? '<em class="tag save">레슨 ' + P.fmt(q.lesson.saving) + '원 절약</em>' : '') +
+        extraTag(q.lesson.extraMonths) + '</span>' +
+        '<span class="c-price">' + (sale ? '<s class="was">' + P.fmt(q.total) + '원</s>' : '') + money(v.total, sale ? 'sale' : '') + '</span>' +
+        '<span class="c-note">한 달에 ' + P.fmt(v.monthly) + '원 · 레슨 1회 ' + P.fmt(v.perSession) + '원</span>' + CHECK + '</button>';
+    }).join('');
+    var skip = b.kind
+      ? '지금 고른 구성을 그대로 두고 다음 단계로 갑니다.'
+      : '기간과 레슨을 하나씩 직접 고릅니다.';
+    return '<div class="slot-pkgs' + (unfold ? ' unfold' : '') + '" id="slotPkgs"><div class="slot-pkgs-in">' +
+      '<h2>추천 패키지로 시작</h2>' +
+      '<p class="q-sub">' + esc(SB.cfg.texts.builderTagline) + '입니다. 많이 찾는 구성을 고르면 바로 견적이 나옵니다.</p>' +
+      pkgPerk() +
+      '<div class="pkg-grid">' + cards + '</div>' +
+      '<button class="choice pkg-none" data-act="b-pkg-none">' +
+      '<span class="c-name">선택 안 함</span><span class="c-note">' + skip + '</span>' + IL.icon('next') + '</button>' +
+      '</div></div>';
+  }
+
+  // 패키지 혜택 한 줄: 레슨 가격과 레슨 기간
+  function pkgPerk() {
+    var note = extraNote();
+    return '<p class="perk">' + IL.icon('check') + '<span>멤버십과 레슨을 함께 하는 패키지는 레슨이 더 저렴합니다.' +
+      (note ? ' ' + esc(note) : '') + '</span></p>';
   }
 
   // ---------- STEP 2 기간 ----------
@@ -246,9 +287,9 @@
     var eligible = known ? P.isPackageEligible({ kind: b.kind, months: b.months }) : true;
     var mode = eligible ? 'pkg' : 'solo';
     var sub = !known
-      ? '3개월 이상 가입하면 레슨을 패키지 가격으로 이용할 수 있습니다. 아래는 패키지 가격입니다.'
-      : (eligible ? '3개월 이상 가입이라 레슨을 패키지 가격으로 이용합니다.'
-        : '1개월권, 쿠폰, 일일 이용에는 레슨 단독 가격이 적용됩니다. 3개월 이상 가입하면 패키지 가격으로 내려갑니다.');
+      ? '3개월 이상 가입하면 레슨을 패키지 가격으로 이용할 수 있습니다.' + (extraNote() ? ' ' + extraNote() : '') + ' 아래는 패키지 가격입니다.'
+      : (eligible ? '3개월 이상 가입이라 레슨을 패키지 가격으로 이용합니다.' + (extraNote() ? ' ' + extraNote() : '')
+        : '1개월권, 쿠폰, 일일 이용에는 레슨 단독 가격이 적용됩니다. 3개월 이상 가입하면 패키지 가격으로 내려갑니다.' + (extraNote() ? ' ' + extraNote() : ''));
 
     function from(min) {
       var best = Infinity;
@@ -277,7 +318,8 @@
           var saving = mode === 'pkg' ? SB.cfg.items['solo.' + b.lessonMin + '.' + c].price - SB.cfg.items[key].price : 0;
           return '<button class="choice period' + (b.lessonCount === c ? ' on' : '') + '" data-act="b-lesson-count" data-v="' + c + '">' +
             '<span class="c-name">' + c + '회</span>' +
-            (saving > 0 ? '<em class="tag save">단독보다 ' + P.fmt(saving) + '원 절약</em>' : '<em class="tag none"> </em>') +
+            '<span class="tags">' + (saving > 0 ? '<em class="tag save">단독보다 ' + P.fmt(saving) + '원 절약</em>' : '<em class="tag none"> </em>') +
+            (mode === 'pkg' ? extraTag(P.packageExtraMonths(c, SB.cfg)) : '') + '</span>' +
             '<span class="c-price">' + cardPrice(key) + '</span>' +
             '<span class="c-note">1회 ' + P.fmt(p.shown / c) + '원 · 유효기간 ' + SB.cfg.validity[mode][c] + '개월</span>' + CHECK + '</button>';
         }).join('') + '</div>';
@@ -337,6 +379,7 @@
     var out = [], sel = q.sel, on = useSale(), cfg = SB.cfg;
     var daily = itemPrice('daily').shown;
     if (q.lesson && q.lesson.saving > 0) out.push('패키지 가격으로 레슨을 ' + P.fmt(q.lesson.saving) + '원 아꼈습니다');
+    if (q.lesson && q.lesson.extraMonths > 0) out.push('패키지라 레슨 기간을 ' + q.lesson.extraMonths + '개월 더 드립니다 (유효기간 ' + q.lesson.validityMonths + '개월)');
     if (sel.kind === 'membership') {
       var line = q.lines[0];
       var be = P.breakevenDays((on ? line.sale : line.price) / q.months, daily);
@@ -430,11 +473,45 @@
     SB.render();
     if (SB.S.b.step === 3) SB.sayOnce('lesson');
   };
+  // 시간대를 고르면 그 카드가 아래로 넓어지며 추천 패키지를 보여 준다(다음 단계로 바로 넘어가지 않는다).
   A['b-slot'] = function (d) {
+    var b = SB.S.b, v = +d.v;
     SB.sfx('click');
-    SB.S.b.slot = +d.v;
+    b.unfold = b.slot !== v;
+    b.slot = v;
     SB.sayOnce('slot' + d.v);
-    advance();
+    SB.render();
+    // 펼침이 끝난 뒤, 내용이 화면 아래로 넘치면 고른 카드를 화면 위쪽으로 올린다.
+    root.setTimeout(function () {
+      var el = root.document.getElementById('slotPkgs'), main = root.document.getElementById('main');
+      if (SB.S.b !== b || !el || !main || !el.scrollIntoView) return;
+      if (el.getBoundingClientRect().bottom > main.getBoundingClientRect().bottom) {
+        el.parentNode.scrollIntoView({ behavior: SB.reduced ? 'auto' : 'smooth', block: 'start' });
+      }
+    }, 380);
+  };
+  // 추천 패키지 선택: 기간과 15분 레슨을 한 번에 정하고 견적으로 간다. 락커는 고른 적이 없으면 '안 씀'으로 둔다.
+  A['b-pkg'] = function (d) {
+    var b = SB.S.b;
+    SB.sfx('click');
+    b.kind = 'membership'; b.tab = 'membership'; b.months = +d.m;
+    b.lessonMin = 15; b.lessonCount = +d.c; b.lessonDone = true;
+    if (!b.lockerDone) { b.locker = null; b.lockerDone = true; }
+    b.walk = false;
+    SB.render();
+    root.setTimeout(function () {
+      if (SB.S.b !== b || SB.S.screen !== 'builder') return;
+      b.step = 5;
+      SB.render();
+    }, 380);
+  };
+  // 선택 안 함: 다음 단계로 넘어가 하나씩 직접 고른다.
+  A['b-pkg-none'] = function () {
+    var b = SB.S.b;
+    SB.sfx('click');
+    b.step = stepAfter(b);
+    SB.render();
+    if (b.step === 3) SB.sayOnce('lesson');
   };
   A['b-tab'] = function (d) { SB.sfx('click'); SB.S.b.tab = d.v; SB.render(); };
   A['b-months'] = function (d) {
@@ -497,13 +574,6 @@
     var b = SB.S.b;
     SB.sfx('click');
     b.locker = d.v === 'none' ? null : d.v; b.lockerDone = true;
-    advance();
-  };
-  A['b-preset'] = function (d) {
-    var b = SB.S.b;
-    SB.sfx('click');
-    b.kind = 'membership'; b.tab = 'membership'; b.months = +d.m;
-    b.lessonMin = 15; b.lessonCount = +d.c; b.lessonDone = true;
     advance();
   };
 

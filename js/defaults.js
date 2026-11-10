@@ -8,7 +8,7 @@
   function defaults() {
     var pricing = root.SBPricing.defaultPricing();
     return {
-      schema: 2,
+      schema: 3,
       items: pricing.items,
       validity: pricing.validity,
       couponMonths: pricing.couponMonths,

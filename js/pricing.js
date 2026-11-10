@@ -42,10 +42,11 @@
   function defaultPricing() {
     return {
       items: defaultItems(),
-      // 레슨권 유효기간(개월). 패키지는 단독보다 1개월 더 준다.
+      // 레슨권 유효기간(개월). 센터 상품 목록(2026-11-10 엑셀) 기준:
+      // 단독 30·60·90·120일, 패키지 60·90·90·120일. 패키지는 8회·16회만 단독보다 1개월 길다.
       validity: {
         solo: { 8: 1, 16: 2, 24: 3, 32: 4 },
-        pkg: { 8: 2, 16: 3, 24: 4, 32: 5 }
+        pkg: { 8: 2, 16: 3, 24: 3, 32: 4 }
       },
       couponMonths: { 10: 1, 20: 3 }
     };
@@ -81,6 +82,17 @@
     if (sel.kind === 'membership') return sel.months;
     if (sel.kind === 'coupon') return cfg.couponMonths[sel.coupon];
     return 1; // 일일 이용권은 한 달 방문 일수 기준
+  }
+
+  // 패키지 레슨이 단독보다 유효기간을 몇 개월 더 주는지 (더 주지 않으면 0)
+  function packageExtraMonths(count, cfg) {
+    var d = (+cfg.validity.pkg[count] || 0) - (+cfg.validity.solo[count] || 0);
+    return d > 0 ? d : 0;
+  }
+  // 유효기간을 더 주는 패키지 횟수 목록: [{ count, extra }]
+  function packageExtraList(cfg) {
+    return LESSON_COUNTS.map(function (c) { return { count: c, extra: packageExtraMonths(c, cfg) }; })
+      .filter(function (x) { return x.extra > 0; });
   }
 
   function describe(sel) {
@@ -148,7 +160,8 @@
         perSession: Math.round(lp.price / sel.lesson.count),
         salePerSession: Math.round(lp.sale / sel.lesson.count),
         saving: saving > 0 ? saving : 0,
-        validityMonths: validity
+        validityMonths: validity,
+        extraMonths: mode === 'pkg' ? packageExtraMonths(sel.lesson.count, cfg) : 0
       };
     }
 
@@ -282,6 +295,7 @@
     SLOTS: SLOTS, MONTHS: MONTHS, LESSON_MINUTES: LESSON_MINUTES, LESSON_COUNTS: LESSON_COUNTS, LOCKERS: LOCKERS,
     defaultPricing: defaultPricing, itemLabel: itemLabel,
     isPackageEligible: isPackageEligible, periodMonths: periodMonths, describe: describe,
+    packageExtraMonths: packageExtraMonths, packageExtraList: packageExtraList,
     quote: quote, view: view, compare: compare,
     breakevenDays: breakevenDays, repeatOneMonth: repeatOneMonth,
     fmt: fmt, won: won, numToKorean: numToKorean, wonSpoken: wonSpoken,

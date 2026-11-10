@@ -125,7 +125,7 @@
         return field(c + '회 (개월)', 'validity/' + kind + '/' + c, { type: 'num' });
       }).join('') + '</div></section>';
     }
-    return '<p class="ad-help">레슨권을 쓸 수 있는 기간입니다. 패키지는 단독보다 1개월 더 주는 것이 기본입니다.</p>' +
+    return '<p class="ad-help">레슨권을 쓸 수 있는 기간입니다. 초기값은 패키지 8회·16회만 단독보다 1개월 깁니다. 패키지가 더 긴 횟수는 고객 화면에 혜택으로 표시됩니다.</p>' +
       row('solo', '레슨 단독') + row('pkg', '패키지 레슨') +
       '<button class="btn ghost sm" data-act="ad-validity-rule">패키지를 단독 + 1개월로 맞추기</button>' +
       '<section class="ad-group"><h3>쿠폰 유효기간</h3><div class="row4">' +

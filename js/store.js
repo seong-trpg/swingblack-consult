@@ -48,6 +48,15 @@
         return base.pros.filter(function (b) { return b.id === 'son-jimin'; })[0] || p;
       });
     }
+    if (from < 3) {
+      // v3 (2026-11-10): 패키지 레슨 24회·32회 유효기간을 센터 상품 목록에 맞춘다(4·5개월 → 3·4개월).
+      // 예전 초기값 그대로인 경우만 바꾸고, 직원이 고친 값은 그대로 둔다.
+      var pkg = cfg.validity && cfg.validity.pkg;
+      if (pkg) {
+        if (+pkg[24] === 4) pkg[24] = 3;
+        if (+pkg[32] === 5) pkg[32] = 4;
+      }
+    }
     cfg.schema = base.schema;
     return cfg;
   }
