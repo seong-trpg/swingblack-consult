@@ -106,10 +106,14 @@
     SB.sfx('click');
     SB.go('home', { replace: true });
   };
-  A['intro-replay'] = function () {
-    SB.sfx('click');
+  // 인트로를 1장면부터 재생한다(소개 다시 보기, 처음부터 다시).
+  SB.playIntro = function () {
     SB.go('intro');
     speakScene();
+  };
+  A['intro-replay'] = function () {
+    SB.sfx('click');
+    SB.playIntro();
   };
 
   // ---------- 홈 ----------
@@ -191,9 +195,15 @@
       ? p.off.slice().sort(function (a, b) { return ((a + 6) % 7) - ((b + 6) % 7); }).map(function (d) { return SB.DAY_NAMES[d]; }).join('·') + ' 휴무'
       : '휴무 없음';
   }
+  // 프로 사진 무대: 배경을 지운 인물 사진을 하늘색 무대 위에 세운다.
+  // 카드에는 상반신(<asset>), 약력 화면에는 전신(<asset>-full, 없으면 상반신)을 쓴다.
+  // 사진이 없으면 얼굴 없는 실루엣을 보여 준다.
   function proPhoto(p, cls) {
-    var ph = SB.photo(p.asset, p.name + ' 프로');
-    return '<div class="pro-photo ' + (cls || '') + '">' + (ph || IL.art('silhouette')) + '</div>';
+    var full = cls === 'lg' ? SB.assetUrl(p.asset + '-full') : '';
+    var url = full || SB.assetUrl(p.asset);
+    if (!url) return '<div class="pro-stage none ' + (cls || '') + '">' + IL.art('silhouette') + '</div>';
+    return '<div class="pro-stage ' + (cls || '') + (full ? ' full' : '') + '">' +
+      '<img class="cut" src="' + esc(url) + '" alt="' + esc(p.name) + ' 프로"></div>';
   }
 
   function weekTable() {

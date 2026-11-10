@@ -127,6 +127,10 @@
     if (!key || !assets.ok[key]) return '';
     return '<img class="photo" src="assets/images/' + esc(assets.manifest[key].path) + '" alt="' + esc(alt || '') + '">';
   }
+  // 실제 파일이 있는 이미지의 주소(없으면 빈 문자열)
+  function assetUrl(key) {
+    return (key && assets.ok[key]) ? 'assets/images/' + assets.manifest[key].path : '';
+  }
   function media(key, artName, cls) {
     var ph = photo(key);
     return '<div class="media ' + (cls || '') + (ph ? ' has-photo' : '') + '">' + (ph || IL.art(artName)) + '</div>';
@@ -348,7 +352,7 @@
     freshBuilder: freshBuilder,
     esc: esc, money: money, josa: josa, toMin: toMin, hm: hm,
     schedule: schedule, scheduleSummary: scheduleSummary, DAY_NAMES: DAY_NAMES,
-    photo: photo, media: media,
+    photo: photo, media: media, assetUrl: assetUrl,
     say: say, sayOnce: sayOnce, sfx: function (n) { V.sfx(n); },
     render: render, go: go, back: back, resetSession: resetSession,
     openModal: openModal, closeModal: closeModal, toast: toast,
@@ -384,11 +388,15 @@
     V.sfx('click');
     openModal(
       '<h2>처음부터 다시 할까요?</h2>' +
-      '<p>지금까지 고른 내용과 비교함이 모두 지워집니다.</p>' +
+      '<p>지금까지 고른 내용과 비교함이 모두 지워지고, 소개 영상부터 다시 시작합니다.</p>' +
       '<div class="modal-btns"><button class="btn ghost" data-act="modal-close">계속 보기</button>' +
       '<button class="btn primary" data-act="restart-yes">처음부터 다시</button></div>');
   };
-  SB.actions['restart-yes'] = function () { resetSession(false); };
+  // 처음부터: 고른 내용을 지우고 인트로 애니메이션부터 다시 보여 준다(SB.playIntro는 screens.js에서 등록).
+  SB.actions['restart-yes'] = function () {
+    resetSession(false);
+    if (SB.playIntro) SB.playIntro();
+  };
 
   root.SBApp = SB;
 })(typeof self !== 'undefined' ? self : this);
