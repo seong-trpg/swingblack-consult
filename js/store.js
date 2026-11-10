@@ -57,6 +57,19 @@
         if (+pkg[32] === 5) pkg[32] = 4;
       }
     }
+    if (from < 4) {
+      // v4 (2026-11-10): 레슨 설명 문구를 짧게. 예전 초기값 그대로인 문구만 바꾸고, 직원이 고친 문구는 둔다.
+      var oldInfo = {
+        m15: '핵심만 짚는 집중 레슨입니다. 시간이 부족하면 2회를 이어서 사용할 수도 있습니다.',
+        m25: '여유 있게 배우고 싶은 분께 추천합니다. 스윙을 차근차근 교정합니다.',
+        payout: '레슨권 매출은 100% 레슨 프로에게 배당됩니다. 그래서 일반 매장보다 경쟁력 있는 가격으로 드립니다.'
+      };
+      if (cfg.lessonInfo && base.lessonInfo) {
+        Object.keys(oldInfo).forEach(function (k) {
+          if (cfg.lessonInfo[k] === oldInfo[k]) cfg.lessonInfo[k] = base.lessonInfo[k];
+        });
+      }
+    }
     cfg.schema = base.schema;
     return cfg;
   }

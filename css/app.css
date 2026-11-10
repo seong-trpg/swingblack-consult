@@ -235,8 +235,6 @@ s { text-decoration-thickness: 2px; }
 .tag.more { background: var(--ink); color: var(--bg); }
 .tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .sheet .r em.tag.more { display: inline-block; margin-left: 0.4rem; font-size: 0.75rem; font-weight: 700; font-style: normal; color: var(--bg); vertical-align: middle; }
-.perk { display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.9rem; padding: 0.7rem 0.9rem; border-radius: 0.7rem; background: var(--bg); border: 1px solid var(--line); font-size: 0.95rem; font-weight: 600; }
-.perk .ic { flex: none; width: 1.2rem; height: 1.2rem; margin-top: 0.15rem; color: var(--primary); stroke-width: 3; }
 .field {
   width: 100%; min-height: 2.8rem; padding: 0.5rem 0.7rem; border-radius: 0.5rem;
   border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-size: 0.95rem;

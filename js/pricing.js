@@ -132,7 +132,7 @@
     if (sel.kind === 'membership') {
       add('mem.' + sel.months + '.' + sel.slot,
         '멤버십 ' + sel.months + '개월 · ' + SLOTS[sel.slot].name, 1,
-        sel.months >= 3 ? '10% 할인 반영가' : '');
+        longTermNote(sel.slot, sel.months, cfg));
     } else if (sel.kind === 'daily') {
       var days = Math.max(1, Math.round(sel.days || 0));
       add('daily', '일일 이용권 ' + days + '일', days, '1일 ' + fmt(items.daily.price) + '원');
@@ -222,7 +222,15 @@
     var long = pair(cfg.items, 'mem.' + months + '.' + slot);
     var a = (useSale ? one.sale : one.price) * months;
     var b = useSale ? long.sale : long.price;
-    return { repeated: a, long: b, saving: a - b, monthly: Math.round(b / months) };
+    // rate: 1개월권을 이어서 끊을 때보다 몇 % 저렴한지 (소수점은 버린다. 더 싸지 않으면 0)
+    var rate = (a > 0 && a > b) ? Math.floor((a - b) / a * 100) : 0;
+    return { repeated: a, long: b, saving: a - b, monthly: Math.round(b / months), rate: rate };
+  }
+  // 장기권 안내 문구: "1개월권보다 53% 저렴" (원가 기준. 1개월권이거나 더 싸지 않으면 빈 문자열)
+  function longTermNote(slot, months, cfg) {
+    if (!(months > 1)) return '';
+    var r = repeatOneMonth(slot, months, cfg, false);
+    return r.rate > 0 ? '1개월권보다 ' + r.rate + '% 저렴' : '';
   }
 
   function fmt(n) {
@@ -297,7 +305,7 @@
     isPackageEligible: isPackageEligible, periodMonths: periodMonths, describe: describe,
     packageExtraMonths: packageExtraMonths, packageExtraList: packageExtraList,
     quote: quote, view: view, compare: compare,
-    breakevenDays: breakevenDays, repeatOneMonth: repeatOneMonth,
+    breakevenDays: breakevenDays, repeatOneMonth: repeatOneMonth, longTermNote: longTermNote,
     fmt: fmt, won: won, numToKorean: numToKorean, wonSpoken: wonSpoken,
     validateItems: validateItems, bulkSale: bulkSale, hasAnySaleItem: hasAnySaleItem
   };

@@ -228,10 +228,9 @@
     var extra = P.packageExtraList(cfg);
     if (!extra.length) return '';
     return '<section class="pkg-valid"><h2 class="sec">패키지로 하면 레슨 기간이 더 깁니다</h2>' +
-      '<p class="q-sub">멤버십(3개월 이상)과 레슨을 함께 하는 패키지는 레슨을 쓸 수 있는 기간을 더 드립니다.</p>' +
       '<table class="sheet"><thead><tr><th>레슨 횟수</th><th class="r">레슨만 따로</th><th class="r">패키지</th></tr></thead><tbody>' +
-      P.LESSON_COUNTS.map(function (c) {
-        var d = P.packageExtraMonths(c, cfg);
+      extra.map(function (x) {
+        var c = x.count, d = x.extra;
         return '<tr><th>' + c + '회</th><td class="r">' + cfg.validity.solo[c] + '개월</td>' +
           '<td class="r"><b>' + cfg.validity.pkg[c] + '개월</b>' + (d ? ' <em class="tag more">+' + d + '개월</em>' : '') + '</td></tr>';
       }).join('') + '</tbody></table></section>';

@@ -74,7 +74,7 @@
     var same = list.every(function (x) { return x.extra === list[0].extra; });
     var who = list.length === P.LESSON_COUNTS.length ? '패키지 레슨은'
       : list.map(function (x) { return x.count + '회'; }).join('·') + '는';
-    return who + ' 레슨 기간도 ' + (same ? list[0].extra + '개월 ' : '') + '더 드립니다.';
+    return who + ' 레슨 기간 ' + (same ? '+' + list[0].extra + '개월.' : '연장.');
   }
   function extraTag(months) {
     return months > 0 ? '<em class="tag more">레슨 기간 +' + months + '개월</em>' : '';
@@ -124,21 +124,21 @@
 
   // ---------- STEP 1 시간대 ----------
   var SLOT_NOTES = {
-    1: '자정부터 낮 12시까지. 출근 전 새벽과 오전에 연습하는 분께 맞습니다.',
-    2: '자정부터 오후 5시까지. 낮 시간이 자유로운 분께 맞습니다.',
-    3: '하루 종일. 퇴근 후와 심야에도 이용합니다.'
+    1: '출근 전 새벽·오전 연습에 맞습니다.',
+    2: '낮 시간이 자유로운 분께 맞습니다.',
+    3: '퇴근 후와 심야에도 이용합니다.'
   };
   var PRESETS = [[3, 8], [3, 16], [6, 16], [12, 8]];
 
   function step1(b) {
     var html = '<h1 class="q">언제 이용하세요?</h1>' +
-      '<p class="q-sub">24시간 운영이라 오픈 시간에 사람이 몰리지 않습니다. 생활 패턴에 맞는 시간대를 골라 주세요.</p>';
+      '<p class="q-sub">생활 패턴에 맞는 시간대를 골라 주세요.</p>';
     if (b.kind && !b.slot) {
       html += '<p class="note-line">' + IL.icon('info') + esc(kindLabel(b) + (b.lessonCount ? ' + 레슨 ' + b.lessonMin + '분 ' + b.lessonCount + '회' : '')) +
-        ' 구성을 골랐습니다. 시간대를 고르면 가격이 나옵니다.</p>';
+        ' 구성입니다. 시간대를 고르면 가격이 나옵니다.</p>';
     }
     if (b.walk) {
-      html += '<p class="note-line">' + IL.icon('info') + '이전 구성이 그대로 선택되어 있습니다. 단계마다 바꾸거나 그대로 두고 넘어가세요.</p>' +
+      html += '<p class="note-line">' + IL.icon('info') + '이전 구성이 선택되어 있습니다. 바꿀 단계만 바꾸세요.</p>' +
         keepBtn(b, !!b.slot);
     }
     var unfold = b.unfold; // 방금 고른 시간대만 펼침 모션을 넣는다(다시 그릴 때는 넣지 않는다)
@@ -167,33 +167,33 @@
       var sel = picked && b.months === p[0] && b.lessonCount === p[1];
       return '<button class="choice pkg' + (sel ? ' on' : '') + '" data-act="b-pkg" data-m="' + p[0] + '" data-c="' + p[1] + '">' +
         '<span class="c-name">' + p[0] + '개월 + 레슨 ' + p[1] + '회</span>' +
-        '<span class="c-note">' + P.SLOTS[n].name + ' ' + p[0] + '개월 · 15분 레슨 ' + p[1] + '회</span>' +
-        '<span class="tags">' + (q.lesson.saving > 0 ? '<em class="tag save">레슨 ' + P.fmt(q.lesson.saving) + '원 절약</em>' : '') +
-        extraTag(q.lesson.extraMonths) + '</span>' +
+        (q.lesson.saving > 0 ? '<em class="tag save">레슨 ' + P.fmt(q.lesson.saving) + '원 절약</em>' : '') +
         '<span class="c-price">' + (sale ? '<s class="was">' + P.fmt(q.total) + '원</s>' : '') + money(v.total, sale ? 'sale' : '') + '</span>' +
-        '<span class="c-note">한 달에 ' + P.fmt(v.monthly) + '원 · 레슨 1회 ' + P.fmt(v.perSession) + '원</span>' + CHECK + '</button>';
+        '<span class="c-note">한 달에 ' + P.fmt(v.monthly) + '원</span>' + CHECK + '</button>';
     }).join('');
     var skip = b.kind
-      ? '지금 고른 구성을 그대로 두고 다음 단계로 갑니다.'
-      : '기간과 레슨을 하나씩 직접 고릅니다.';
+      ? '고른 구성 그대로 다음 단계로'
+      : '기간과 레슨을 직접 고르기';
     return '<div class="slot-pkgs' + (unfold ? ' unfold' : '') + '" id="slotPkgs"><div class="slot-pkgs-in">' +
       '<h2>추천 패키지로 시작</h2>' +
-      '<p class="q-sub">' + esc(SB.cfg.texts.builderTagline) + '입니다. 많이 찾는 구성을 고르면 바로 견적이 나옵니다.</p>' +
-      pkgPerk() +
+      '<p class="q-sub">' + esc(pkgPerk()) + '</p>' +
       '<div class="pkg-grid">' + cards + '</div>' +
       '<button class="choice pkg-none" data-act="b-pkg-none">' +
       '<span class="c-name">선택 안 함</span><span class="c-note">' + skip + '</span>' + IL.icon('next') + '</button>' +
       '</div></div>';
   }
 
-  // 패키지 혜택 한 줄: 레슨 가격과 레슨 기간
+  // 패키지 혜택 한 줄: 레슨 가격과 레슨 기간 (15분 레슨 기준 구성)
   function pkgPerk() {
     var note = extraNote();
-    return '<p class="perk">' + IL.icon('check') + '<span>멤버십과 레슨을 함께 하는 패키지는 레슨이 더 저렴합니다.' +
-      (note ? ' ' + esc(note) : '') + '</span></p>';
+    return '멤버십 + 15분 레슨 패키지는 레슨이 더 저렴합니다.' + (note ? ' ' + note : '');
   }
 
   // ---------- STEP 2 기간 ----------
+  // 1개월권을 이어서 끊을 때보다 몇 % 저렴한지 (지금 보이는 가격 기준)
+  function longRate(slot, months) {
+    return months > 1 ? P.repeatOneMonth(slot, months, SB.cfg, useSale()).rate : 0;
+  }
   function step2(b) {
     var base = b.slot || 1;
     var tabs = [['membership', '기간 이용권'], ['daily', '일일 이용권'], ['coupon', '횟수 쿠폰']];
@@ -213,7 +213,7 @@
         var on = b.kind === 'membership' && b.months === m;
         return '<button class="choice period' + (on ? ' on' : '') + '" data-act="b-months" data-v="' + m + '">' +
           '<span class="c-name">' + m + '개월</span>' +
-          (m >= 3 ? '<em class="tag">10% 할인 반영</em>' : '<em class="tag none"> </em>') +
+          (longRate(base, m) > 0 ? '<em class="tag">1개월권보다 ' + longRate(base, m) + '% 저렴</em>' : '<em class="tag none"> </em>') +
           '<span class="c-price">' + cardPrice('mem.' + m + '.' + base) + '</span>' +
           '<span class="c-note">한 달에 ' + P.fmt(v.monthly) + '원</span>' + CHECK + '</button>';
       }).join('') + '</div>';
@@ -223,7 +223,7 @@
         var w = Math.round(r.long / r.repeated * 100);
         html += '<section class="hint">' +
           '<h2>3개월이면 한 달에 ' + P.fmt(r.monthly) + '원입니다</h2>' +
-          '<p>3개월 이상 가입 가격에는 10% 할인이 이미 반영되어 있습니다.</p>' +
+          '<p>1개월권을 3번 끊는 것보다 ' + r.rate + '% 저렴합니다.</p>' +
           '<div class="bars">' +
           '<div class="bar"><span>1개월권 3번</span><i style="width:100%"></i><b>' + P.fmt(r.repeated) + '원</b></div>' +
           '<div class="bar best"><span>3개월권 1번</span><i style="width:' + w + '%"></i><b>' + P.fmt(r.long) + '원</b></div>' +
@@ -287,9 +287,9 @@
     var eligible = known ? P.isPackageEligible({ kind: b.kind, months: b.months }) : true;
     var mode = eligible ? 'pkg' : 'solo';
     var sub = !known
-      ? '3개월 이상 가입하면 레슨을 패키지 가격으로 이용할 수 있습니다.' + (extraNote() ? ' ' + extraNote() : '') + ' 아래는 패키지 가격입니다.'
-      : (eligible ? '3개월 이상 가입이라 레슨을 패키지 가격으로 이용합니다.' + (extraNote() ? ' ' + extraNote() : '')
-        : '1개월권, 쿠폰, 일일 이용에는 레슨 단독 가격이 적용됩니다. 3개월 이상 가입하면 패키지 가격으로 내려갑니다.' + (extraNote() ? ' ' + extraNote() : ''));
+      ? '3개월 이상 가입 시 패키지 가격입니다.' + (extraNote() ? ' ' + extraNote() : '')
+      : (eligible ? '3개월 이상 가입이라 패키지 가격입니다.' + (extraNote() ? ' ' + extraNote() : '')
+        : '레슨 단독 가격입니다. 3개월 이상 가입하면 패키지 가격으로 내려갑니다.');
 
     function from(min) {
       var best = Infinity;
@@ -302,7 +302,7 @@
     var html = '<h1 class="q">레슨 받으세요?</h1><p class="q-sub">' + sub + '</p>' + keepBtn(b, b.lessonDone) +
       '<div class="choices grid3">' +
       '<button class="choice lesson' + (none ? ' on' : '') + '" data-act="b-lesson-min" data-v="0">' +
-      '<span class="c-name">안 받음</span><span class="c-note">타석만 이용합니다. 나중에 레슨만 따로 추가할 수 있습니다.</span>' + CHECK + '</button>' +
+      '<span class="c-name">안 받음</span><span class="c-note">타석만 이용합니다.</span>' + CHECK + '</button>' +
       [15, 25].map(function (min) {
         return '<button class="choice lesson' + (b.lessonMin === min ? ' on' : '') + '" data-act="b-lesson-min" data-v="' + min + '">' +
           '<span class="c-name">' + min + '분 레슨</span>' +
@@ -325,8 +325,7 @@
         }).join('') + '</div>';
     }
     html += '<aside class="info">' + IL.icon('info') + '<div><b>레슨은 프로님 근무 시간에 예약합니다</b>' +
-      '<p>' + esc(SB.scheduleSummary()) + '</p>' +
-      '<p>시설은 24시간 운영하지만 레슨은 위 시간에만 받을 수 있습니다.</p>' +
+      '<p>' + SB.scheduleSummary().split(' / ').map(esc).join('<br>') + '</p>' +
       '<button class="link" data-act="go" data-to="lesson">프로 소개 보기</button></div></aside>';
     return html;
   }
@@ -350,7 +349,7 @@
         '<span class="c-name">' + name + '</span>' + price + CHECK + '</button>';
     }
     return '<h1 class="q">락커 쓰세요?</h1>' +
-      '<p class="q-sub">클럽과 신발을 두고 다닐 수 있습니다. 요금은 한 달 기준이고 이용 개월 수만큼 더해집니다.</p>' +
+      '<p class="q-sub">요금은 한 달 기준이며 이용 개월 수만큼 더해집니다.</p>' +
       keepBtn(b, b.lockerDone) +
       '<div class="locker-wrap">' + SB.media('facility-locker', 'locker', 'locker-art') +
       '<div class="choices col">' + card('none', '안 씀', '장비를 가지고 다닙니다.') + card('top', '상단 락커') + card('bottom', '하단 락커') + '</div></div>';
@@ -378,22 +377,22 @@
   function tips(q) {
     var out = [], sel = q.sel, on = useSale(), cfg = SB.cfg;
     var daily = itemPrice('daily').shown;
-    if (q.lesson && q.lesson.saving > 0) out.push('패키지 가격으로 레슨을 ' + P.fmt(q.lesson.saving) + '원 아꼈습니다');
-    if (q.lesson && q.lesson.extraMonths > 0) out.push('패키지라 레슨 기간을 ' + q.lesson.extraMonths + '개월 더 드립니다 (유효기간 ' + q.lesson.validityMonths + '개월)');
+    if (q.lesson && q.lesson.saving > 0) out.push('패키지로 레슨 ' + P.fmt(q.lesson.saving) + '원 절약');
+    if (q.lesson && q.lesson.extraMonths > 0) out.push('패키지라 레슨 기간 +' + q.lesson.extraMonths + '개월');
     if (sel.kind === 'membership') {
       var line = q.lines[0];
       var be = P.breakevenDays((on ? line.sale : line.price) / q.months, daily);
       if (sel.months === 1) {
         var r = P.repeatOneMonth(sel.slot, 3, cfg, on);
-        out.push('3개월권이면 한 달에 ' + P.fmt(r.monthly) + '원입니다');
+        out.push('3개월권이면 한 달에 ' + P.fmt(r.monthly) + '원');
       }
-      out.push('한 달에 ' + be + '일 이상 오면 일일 이용권보다 유리합니다');
+      out.push('한 달 ' + be + '일 이상 오면 일일권보다 유리');
     } else if (sel.kind === 'daily') {
       var slot = sel.slot || 1;
       var one = itemPrice('mem.1.' + slot).shown;
       var d = q.lines[0][on ? 'sale' : 'price'] - one;
-      if (d > 0) out.push('1개월권(' + P.SLOTS[slot].name + ')보다 ' + P.fmt(d) + '원 더 듭니다');
-      else if (d < 0) out.push('1개월권(' + P.SLOTS[slot].name + ')보다 ' + P.fmt(-d) + '원 덜 듭니다');
+      if (d > 0) out.push('1개월권(' + P.SLOTS[slot].name + ')보다 ' + P.fmt(d) + '원 비쌈');
+      else if (d < 0) out.push('1개월권(' + P.SLOTS[slot].name + ')보다 ' + P.fmt(-d) + '원 저렴');
     }
     return out;
   }
@@ -407,7 +406,7 @@
     var q = quoteOf(sel);
     var t = tips(q);
     return '<h1 class="q">이 구성의 견적입니다</h1>' +
-      '<p class="q-sub">위 단계 버튼을 누르면 언제든 바꿀 수 있습니다. 고민되는 구성은 비교함에 담아 나란히 보세요.</p>' +
+      '<p class="q-sub">단계 버튼으로 바꿀 수 있습니다. 고민되면 비교함에 담아 보세요.</p>' +
       '<div class="sel-chips">' + (sel.kind === 'membership' ? slotChip(sel.slot) : '') + '</div>' +
       sheet(q, 's5-total') +
       (t.length ? '<ul class="tips">' + t.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '');
@@ -800,7 +799,7 @@
           return cmp.diffs[i] === 0 ? '<b class="best">최저가</b>' : '<b>+' + P.fmt(cmp.diffs[i]) + '원</b>';
         }) +
         row('r-tips', '참고', function (c, q) {
-          var t = tips(q).slice(0, 2);
+          var t = tips(q).slice(0, 1);
           return t.length ? '<ul>' + t.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '';
         }) +
         row('r-act', '', function (c) {

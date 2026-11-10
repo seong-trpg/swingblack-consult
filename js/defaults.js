@@ -8,7 +8,7 @@
   function defaults() {
     var pricing = root.SBPricing.defaultPricing();
     return {
-      schema: 3,
+      schema: 4,
       items: pricing.items,
       validity: pricing.validity,
       couponMonths: pricing.couponMonths,
@@ -73,9 +73,9 @@
       ],
 
       lessonInfo: {
-        m15: '핵심만 짚는 집중 레슨입니다. 시간이 부족하면 2회를 이어서 사용할 수도 있습니다.',
-        m25: '여유 있게 배우고 싶은 분께 추천합니다. 스윙을 차근차근 교정합니다.',
-        payout: '레슨권 매출은 100% 레슨 프로에게 배당됩니다. 그래서 일반 매장보다 경쟁력 있는 가격으로 드립니다.'
+        m15: '핵심만 짚는 집중 레슨. 2회 이어 쓰기 가능.',
+        m25: '스윙을 차근차근 교정하는 여유 있는 레슨.',
+        payout: '레슨권 매출 100%를 프로에게 배당해 가격 경쟁력이 높습니다.'
       },
 
       // 요일: 0=일 1=월 2=화 3=수 4=목 5=금 6=토
