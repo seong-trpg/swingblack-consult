@@ -296,14 +296,31 @@ textarea.field { resize: vertical; line-height: 1.5; }
 .start-branch { position: relative; font-size: 1.1rem; letter-spacing: 0.5em; margin-right: -0.5em; color: var(--primary-deep); font-weight: 700; }
 .start-24 { position: relative; margin-top: 2.6rem; display: flex; align-items: center; gap: 0.7rem; color: var(--mute); font-weight: 600; }
 .start-24 b, .b24 { padding: 0.15rem 0.6rem; border-radius: 0.4rem; background: var(--primary); color: var(--on-primary); font-weight: 800; }
-.start-touch { position: absolute; bottom: 12%; left: 0; right: 0; font-size: 1.15rem; font-weight: 700; color: var(--primary-deep); animation: blink 2.4s ease-in-out infinite; }
+/* 안내 음성 고르기: 여성·남성 버튼 가운데 하나를 누르면 그 목소리로 시작한다 */
+.start-pick { position: relative; margin-top: 3.2rem; width: min(34rem, calc(100% - 2 * var(--pad))); display: flex; flex-direction: column; gap: 1rem; }
+.start-touch { font-size: 1.15rem; font-weight: 700; color: var(--primary-deep); animation: blink 2.4s ease-in-out infinite; }
+.start-voices { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+.start-voice {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem;
+  min-height: 9.4rem; padding: 1.3rem 1rem; border-radius: var(--r-card); text-align: center;
+  background: var(--bg); border: 2px solid var(--primary); box-shadow: 0 0.6rem 1.6rem rgba(15, 39, 64, 0.08);
+  transition: transform 0.15s, background 0.2s;
+}
+.start-voice:active { transform: scale(0.97); background: var(--raised); }
+.start-voice .ic { width: 2.4rem; height: 2.4rem; color: var(--primary); }
+.start-voice b { font-size: 1.45rem; font-weight: 800; }
+.start-voice span { font-size: 0.9rem; color: var(--mute); }
 @keyframes blink { 50% { opacity: 0.25; } }
 
 /* ---------- 인트로 ---------- */
 .intro { height: 100%; display: flex; flex-direction: column; background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%); }
 .intro-top { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem var(--pad); }
 .intro-brand { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.2em; color: var(--primary-deep); }
-.skip { display: inline-flex; align-items: center; gap: 0.2rem; min-height: 3rem; padding: 0 1rem; border-radius: 2rem; border: 1px solid var(--line); background: var(--bg); font-weight: 700; font-size: 0.95rem; }
+.intro-btns { display: flex; align-items: center; gap: 0.5rem; }
+.skip, .intro-mute { display: inline-flex; align-items: center; gap: 0.2rem; min-height: 3rem; padding: 0 1rem; border-radius: 2rem; border: 1px solid var(--line); background: var(--bg); font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
+/* 음소거 버튼: 소리가 꺼져 있는 동안은 짙게 채워 꺼진 상태임을 보여 준다 */
+.intro-mute { gap: 0.35rem; }
+.intro-mute.on { background: var(--ink); border-color: var(--ink); color: var(--on-primary); }
 /* 장면 그림은 무대(.stage)의 남은 높이에 맞춰 줄어든다(cqh = 무대 높이의 1%).
    화면이 넓고 낮아도 그림이 자막 영역으로 넘치지 않게 하기 위함이다. */
 .stage {
@@ -460,7 +477,7 @@ textarea.field { resize: vertical; line-height: 1.5; }
 /* 세로가 낮은 화면(가로로 눕힌 작은 화면): 재생바·자막·버튼 줄의 여백을 줄여 장면 그림 자리를 남긴다 */
 @media (max-height: 700px) {
   .intro-top { padding: 0.3rem var(--pad); }
-  .skip { min-height: 2.6rem; }
+  .skip, .intro-mute { min-height: 2.6rem; }
   .playbar { padding: 0.1rem var(--pad) 0.2rem; }
   .pb-btn { width: 2.6rem; height: 2.6rem; }
   .pb-seg { height: 2.6rem; }
@@ -855,8 +872,94 @@ textarea.field { resize: vertical; line-height: 1.5; }
 .pv-row em { display: block; font-style: normal; font-size: 0.65rem; color: var(--mute); }
 .field.pin { font-size: 1.6rem; text-align: center; letter-spacing: 0.4em; margin-top: 0.5rem; min-height: 3.4rem; }
 
+/* ---------- 터치스크린의 가로 구역 (index.html?kiosk=1, 기준 1080 x 684px) ----------
+   세로 대형 화면(675 x 1160mm)의 가운데 구역에 가로로 들어간다. 그 화면은 1px이 약 0.6mm라
+   1rem을 16px(약 10mm)로 낮춰 한 화면에 더 많이 담고, 세로 한 줄이던 배치를 좌우 두 칸으로 편다.
+   규칙은 모두 html.kiosk 아래에만 걸려 태블릿 화면에는 영향이 없다. */
+.sum-title { display: none; }
+html.kiosk { font-size: 16px; }
+html.kiosk .app { max-width: none; }
+html.kiosk .top { min-height: 3.3rem; padding-top: 0.3rem; padding-bottom: 0.3rem; }
+html.kiosk .capbar { height: 2.9rem; }
+html.kiosk .main { padding: 1.1rem 1.8rem 1.8rem; }
+html.kiosk .scr-start .main, html.kiosk .scr-intro .main { padding: 0; }
+html.kiosk .q-sub { margin-bottom: 0.8rem; }
+html.kiosk .start-24 { margin-top: 1.6rem; }
+html.kiosk .start-pick { margin-top: 2.2rem; }
+html.kiosk .start-voice { min-height: 8rem; }
+/* 인트로: 장면 그림이 좌우로 퍼지지 않게 태블릿과 비슷한 폭으로 가운데에 모은다 */
+html.kiosk .stage { padding-left: max(var(--pad), calc(50% - 24rem)); padding-right: max(var(--pad), calc(50% - 24rem)); }
+html.kiosk .subtitle { margin: 0 1.8rem; }
+html.kiosk .subtitle p { font-size: 1.3rem; }
+/* 홈: 왼쪽에 소개와 지금 시각, 오른쪽에 메뉴 */
+html.kiosk .scr-home .main { display: grid; grid-template-columns: 25rem minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; column-gap: 2.2rem; }
+html.kiosk .scr-home .hero { grid-column: 1; grid-row: 1; }
+html.kiosk .scr-home .promos { grid-column: 1; grid-row: 2; }
+html.kiosk .scr-home .trust { grid-column: 1; grid-row: 3; align-self: end; grid-template-columns: 1fr 1fr; margin-top: 1rem; }
+html.kiosk .scr-home .trust li:nth-child(odd) { border-left: 0; }
+html.kiosk .scr-home .trust li:nth-child(n + 3) { border-top: 1px solid var(--line); }
+html.kiosk .scr-home .home-foot { grid-column: 1; grid-row: 4; justify-content: flex-start; }
+html.kiosk .scr-home .menu { grid-column: 2; grid-row: 1 / -1; margin-top: 0; }
+html.kiosk .scr-home .menu-main, html.kiosk .scr-home .menu-row { max-height: none; }
+html.kiosk .hero-title { font-size: 1.9rem; margin-bottom: 1rem; }
+/* 이용권 설계: 선택은 왼쪽, 합계와 담기 버튼은 오른쪽 칸에 고정 */
+html.kiosk .app.scr-builder { display: grid; grid-template-columns: minmax(0, 1fr) 19rem; grid-template-rows: auto auto minmax(0, 1fr); }
+html.kiosk .scr-builder .top { grid-column: 1 / -1; grid-row: 1; }
+html.kiosk .scr-builder .capbar { grid-column: 1 / -1; grid-row: 2; }
+html.kiosk .scr-builder .main { grid-column: 1; grid-row: 3; }
+html.kiosk .scr-builder .sum {
+  grid-column: 2; grid-row: 3; flex-direction: column; align-items: stretch; justify-content: space-between;
+  padding: 1.2rem 1.3rem 1.4rem; border-top: 0; border-left: 2px solid var(--primary); box-shadow: none; background: var(--surface);
+}
+html.kiosk .scr-builder .sum-title { display: block; font-size: 0.95rem; font-weight: 800; color: var(--primary-deep); margin-bottom: 0.7rem; }
+html.kiosk .scr-builder .sum-chips { margin-bottom: 0.8rem; }
+html.kiosk .scr-builder .sum-chips .chip { font-size: 0.8rem; }
+html.kiosk .scr-builder .sum-month { margin-top: 0.4rem; }
+html.kiosk .scr-builder .sum-r { flex-direction: column; }
+html.kiosk .scr-builder .sum-r .btn { width: 100%; }
+html.kiosk .steps { margin-bottom: 1rem; }
+html.kiosk .step { flex-direction: row; justify-content: center; gap: 0.4rem; min-height: 3rem; padding: 0.3rem 0.5rem; }
+/* 시간대 카드 셋을 가로로 놓고, 추천 패키지는 그 아래 전체 폭으로 편다 */
+html.kiosk .choices.col:has(> .slot-wrap) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html.kiosk .slot-wrap { display: contents; }
+html.kiosk .slot-wrap > .choice.slot { grid-row: 1; }
+html.kiosk .slot-wrap.open .choice.slot { border-radius: var(--r-card); }
+html.kiosk .slot-wrap.s1.open .choice.slot { border-bottom-color: var(--slot1); }
+html.kiosk .slot-wrap.s2.open .choice.slot { border-bottom-color: var(--slot2); }
+html.kiosk .slot-wrap.s3.open .choice.slot { border-bottom-color: var(--slot3); }
+html.kiosk .slot-pkgs { grid-column: 1 / -1; grid-row: 2; margin-top: 0; border-top-width: 2px; border-top-style: solid; border-radius: var(--r-card); }
+html.kiosk .slot-pkgs-in { padding-top: 1rem; }
+html.kiosk .slot-pkgs-in::before { display: none; }
+html.kiosk .pkg-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+html.kiosk .choice.pkg { padding: 0.8rem 0.85rem; }
+html.kiosk .choice.pkg .c-name { font-size: 1.05rem; padding-right: 2rem; }
+html.kiosk .choice.pkg .money b { font-size: 1.35em; }
+html.kiosk .choice.lesson { min-height: 8rem; }
+/* 시설 소개, 레슨·프로, 이용 안내: 넓은 폭을 여러 칸으로 쓴다 */
+html.kiosk .promises { display: grid; grid-template-columns: 1fr 1fr; column-gap: 2.2rem; }
+html.kiosk .promises li:nth-child(2) { border-top: 2px solid var(--primary); }
+html.kiosk .fac { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+html.kiosk .fac-card.wide { grid-column: span 2; }
+html.kiosk .trust.big { grid-template-columns: repeat(4, 1fr); }
+html.kiosk .trust.big li:nth-child(odd) { border-left: 1px solid var(--line); }
+html.kiosk .trust.big li:first-child { border-left: 0; }
+html.kiosk .trust.big li:nth-child(n + 3) { border-top: 0; }
+html.kiosk .pro-card { flex-direction: row; text-align: left; }
+html.kiosk .pro-card .pro-stage { flex: none; width: 12rem; height: 13rem; }
+html.kiosk .pro-card .pro-info { justify-content: center; font-size: 0.95rem; }
+html.kiosk .pro-detail { display: grid; grid-template-columns: 22rem minmax(0, 1fr); column-gap: 2.2rem; align-items: start; }
+html.kiosk .pro-head { grid-column: 1; grid-row: 1 / span 6; grid-template-columns: 1fr; position: sticky; top: 0; }
+html.kiosk .pro-head .pro-stage.lg { width: 100%; height: 17rem; }
+html.kiosk .pro-detail > :not(.pro-head) { grid-column: 2; }
+html.kiosk .pro-detail > .sec:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
+html.kiosk dl.guide { display: grid; grid-template-columns: 1fr 1fr; column-gap: 2.2rem; }
+html.kiosk dl.guide div:nth-child(2) { border-top: 2px solid var(--ink); }
+html.kiosk .quote, html.kiosk .scr-compare .empty, html.kiosk .scr-quote .empty { max-width: 46rem; margin: 0 auto; }
+html.kiosk .toast { bottom: 5rem; }
+
 /* ---------- 좁은 화면 (600px 폭까지) ---------- */
 @media (max-width: 640px) {
+  .start-voice b { font-size: 1.2rem; }
   .tbtn span { display: none; }
   .brand .wm { font-size: 0.7rem; letter-spacing: 0.14em; }
   .choices.grid3 { grid-template-columns: 1fr; }

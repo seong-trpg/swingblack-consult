@@ -428,7 +428,8 @@
     var btns = (avail ? '<button class="btn sale" data-act="discount-toggle">' + (useSale() ? '원가 보기' : '할인 적용') + '</button>' : '') +
       '<button class="btn primary" id="addBtn" data-act="b-add"' + (q ? '' : ' disabled') + '>' +
       (b.editing ? '수정 내용 저장' : '비교함에 담기') + '</button>';
-    return '<footer class="sum"><div class="sum-l">' + left + '</div><div class="sum-r">' + btns + '</div></footer>';
+    // sum-title은 요약이 옆 칸으로 가는 터치스크린 가로형 배치에서만 보인다.
+    return '<footer class="sum"><div class="sum-l"><b class="sum-title">지금 고른 구성</b>' + left + '</div><div class="sum-r">' + btns + '</div></footer>';
   }
 
   SB.screens.builder = {
@@ -874,6 +875,25 @@
       '<button class="btn primary" data-act="finish-yes">상담 마치기</button></div>');
   };
   A['finish-yes'] = function () { SB.resetSession(true); };
+
+  // 터치스크린의 가격판에서 가격을 누르면 그 시간대·기간으로 이용권 설계를 연다.
+  // 레슨·락커처럼 이미 고른 내용은 그대로 두고, 아직 안 고른 첫 단계로 간다.
+  SB.pickMembership = function (slot, months) {
+    if (!P.SLOTS[slot] || P.MONTHS.indexOf(months) < 0) return false;
+    if (SB.S.screen === 'admin') return false; // 관리자가 값을 고치는 중에는 화면을 바꾸지 않는다
+    var b = SB.S.b;
+    b.editing = null; b.walk = false;
+    b.slot = slot; b.kind = 'membership'; b.tab = 'membership'; b.months = months;
+    b.step = nextStep(b);
+    root.SBVoice.unlock();
+    SB.keepAwake();
+    SB.keepAlive();
+    if (root.SBIntro) root.SBIntro.stop();
+    SB.sfx('click');
+    if (SB.S.screen === 'builder') SB.render();
+    else SB.go('builder', { replace: SB.S.screen === 'start' || SB.S.screen === 'intro' });
+    return true;
+  };
 
   SB.builder = { selOf: selOf, discountAvailable: discountAvailable, useSale: useSale };
 })(typeof self !== 'undefined' ? self : this);

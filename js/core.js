@@ -11,6 +11,7 @@
   var $app, $modal, $toast, $idle;
   var reduced = !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var muted = false;
+  var voiceKind = 'female'; // 시작 화면에서 고른 안내 음성: 'female' 또는 'male'
   var rollPrev = {};
   var lastScrollKey = null;
   var lastActive = Date.now();
@@ -18,6 +19,9 @@
   var assets = { manifest: {}, ok: {} };
   var capText = '', capLive = false;
   var CAP_EMPTY = '화면을 고르면 음성과 자막으로 안내합니다.';
+  // 터치스크린(kiosk.html)의 가로 구역 안에서 열렸는지. 주소에 ?kiosk=1이 붙어 있으면 가로형 배치(css의 html.kiosk)를 쓴다.
+  var kiosk = /[?&]kiosk=1(&|$)/.test(root.location.search);
+  if (kiosk) doc.documentElement.classList.add('kiosk');
 
   function freshBuilder() {
     return {
@@ -139,6 +143,7 @@
   // ----- 소리 -----
   function applySound() {
     V.setRate(cfg.settings.voiceRate);
+    V.setKind(voiceKind);
     V.setVoice(!muted && cfg.settings.voiceOn);
     V.setSfx(!muted && cfg.settings.sfxOn);
   }
@@ -337,6 +342,13 @@
       doc.addEventListener(t, function () { lastActive = Date.now(); hideIdle(); }, { passive: true, capture: true });
     });
     doc.addEventListener('visibilitychange', keepAwake);
+    // 터치스크린: 이 구역을 손으로 터치해도 바깥 화면(kiosk.html)이 전체화면으로 바뀌게 알린다.
+    if (kiosk) {
+      doc.addEventListener('pointerup', function (ev) {
+        if (ev.pointerType === 'mouse') return;
+        try { root.parent.SBKiosk.enterFullscreen(); } catch (e) { /* 단독으로 열린 경우 */ }
+      }, true);
+    }
     root.setInterval(idleTick, 1000);
   }
 
@@ -345,7 +357,11 @@
     get S() { return S; },
     get cfg() { return cfg; },
     get muted() { return muted; },
+    get voiceKind() { return voiceKind; },
+    // 안내 음성을 고른다. 처음 화면으로 돌아가 다시 고르기 전까지 유지된다.
+    setVoiceKind: function (k) { voiceKind = k === 'male' ? 'male' : 'female'; applySound(); },
     get reduced() { return reduced; },
+    get kiosk() { return kiosk; },
     get assets() { return assets; },
     setCfg: function (next) { cfg = next; applySound(); },
     reloadCfg: function () { cfg = Store.load(); applySound(); },
@@ -381,6 +397,10 @@
     muted = !muted;
     applySound();
     if (!muted) V.sfx('pop');
+    // 인트로처럼 다시 그리면 안 되는 화면은 버튼만 고친다(soundChanged). 다시 그리면 장면 모션이 흐트러진다.
+    // 그 화면에서는 버튼 자체가 켜짐·꺼짐을 보여 주므로 알림 띠를 띄우지 않는다(재생바를 가린다).
+    var def = SB.screens[S.screen];
+    if (def && def.soundChanged) { def.soundChanged(); return; }
     toast(muted ? '소리를 껐습니다' : '소리를 켰습니다', 1600);
     render();
   };
@@ -388,14 +408,14 @@
     V.sfx('click');
     openModal(
       '<h2>처음부터 다시 할까요?</h2>' +
-      '<p>지금까지 고른 내용과 비교함이 모두 지워지고, 소개 영상부터 다시 시작합니다.</p>' +
+      '<p>지금까지 고른 내용과 비교함이 모두 지워지고, 안내 음성을 고르는 처음 화면으로 돌아갑니다.</p>' +
       '<div class="modal-btns"><button class="btn ghost" data-act="modal-close">계속 보기</button>' +
       '<button class="btn primary" data-act="restart-yes">처음부터 다시</button></div>');
   };
-  // 처음부터: 고른 내용을 지우고 인트로 애니메이션부터 다시 보여 준다(SB.playIntro는 screens.js에서 등록).
+  // 처음부터: 고른 내용을 지우고 처음 화면(안내 음성 고르기)으로 돌아간다. 음성을 고르면 인트로부터 다시 시작한다.
+  // (2026-11-11 사용자 결정. 그 전에는 음성 선택 없이 인트로부터 바로 다시 시작했다.)
   SB.actions['restart-yes'] = function () {
-    resetSession(false);
-    if (SB.playIntro) SB.playIntro();
+    resetSession(true);
   };
 
   root.SBApp = SB;

@@ -20,23 +20,29 @@
     return ampm + ' ' + h12 + '시 ' + (m < 10 ? '0' : '') + m + '분';
   }
 
-  // ---------- 시작 화면: 첫 터치로 소리를 켠다 ----------
+  // ---------- 시작 화면: 안내 음성(여성·남성)을 고르면 시작한다. 이 첫 터치로 소리도 켠다 ----------
+  function voiceBtn(kind, label) {
+    return '<button class="start-voice" data-act="start" data-voice="' + kind + '">' + IL.icon('sound') +
+      '<b>' + label + '</b><span>터치해서 시작</span></button>';
+  }
   SB.screens.start = {
     render: function () {
       var logo = SB.photo('brand-logo', SB.cfg.texts.brand);
       return {
         bare: true,
-        html: '<button class="start" data-act="start" aria-label="터치해서 시작">' +
+        html: '<div class="start">' +
           '<div class="start-glow"></div>' +
           (logo ? '<div class="start-logo">' + logo + '</div>'
             : '<div class="start-wm">' + esc(SB.cfg.texts.brand) + '</div>') +
           '<div class="start-branch">' + esc(SB.cfg.texts.branch) + '</div>' +
           '<div class="start-24"><b>24H</b><span>지금도 열려 있습니다</span></div>' +
-          '<div class="start-touch">화면을 터치하면 시작합니다</div></button>'
+          '<div class="start-pick"><p class="start-touch">안내 음성을 고르면 시작합니다</p>' +
+          '<div class="start-voices">' + voiceBtn('female', '여성 음성 안내') + voiceBtn('male', '남성 음성 안내') + '</div></div></div>'
       };
     }
   };
-  A.start = function () {
+  A.start = function (d) {
+    if (d && d.voice) SB.setVoiceKind(d.voice);
     V.unlock();
     SB.keepAwake();
     SB.sfx('chime');
@@ -165,8 +171,22 @@
     return { t: player.t, paused: player.paused, ended: player.ended, voiceDone: player.voiceDone, state: playerState() };
   };
 
+  // 인트로 음소거 버튼: 건너뛰기 왼쪽. 버튼 글자는 누르면 일어나는 일이다(음소거 ↔ 소리 켜기).
+  function muteBtn() {
+    var m = SB.muted;
+    return '<button class="intro-mute' + (m ? ' on' : '') + '" id="introMute" data-act="sound" aria-pressed="' + m + '">' +
+      IL.icon(m ? 'mute' : 'sound') + '<span>' + (m ? '소리 켜기' : '음소거') + '</span></button>';
+  }
+
   SB.screens.intro = {
     enter: function () { SB.S.intro = 0; resetPlayer(); },
+    // 소리를 켜고 끌 때: 화면을 다시 그리지 않고 버튼만 고친다. 장면과 재생바는 그대로 이어진다.
+    soundChanged: function () {
+      var btn = doc.getElementById('introMute');
+      if (btn) btn.outerHTML = muteBtn();
+      // 소리 없이 시작한 장면에서 소리를 켜면 이어 들려줄 음성이 없으므로, 그 장면을 음성과 함께 처음부터 다시 튼다.
+      if (!SB.muted && V.isVoiceOn() && V.mode() === 'timer' && !player.ended) showScene(SB.S.intro);
+    },
     render: function () {
       var S = SB.S, list = SB.cfg.intro, sc = list[S.intro] || list[0];
       var last = S.intro === list.length - 1;
@@ -188,7 +208,8 @@
         bare: true,
         html: '<div class="intro">' +
           '<div class="intro-top"><span class="intro-brand">' + esc(SB.cfg.texts.brand) + ' ' + esc(SB.cfg.texts.branch) + '</span>' +
-          '<button class="skip" data-act="intro-done">건너뛰기' + IL.icon('next') + '</button></div>' +
+          '<div class="intro-btns">' + muteBtn() +
+          '<button class="skip" data-act="intro-done">건너뛰기' + IL.icon('next') + '</button></div></div>' +
           '<div class="stage scene-' + sc.scene + '" id="stage">' + root.SBIntro.html(sc.scene, SB.cfg, SB, sc.text) + '</div>' +
           playbar +
           '<div class="subtitle"><span class="cap-tag">AI 음성 안내</span><p>' + esc(sc.text) + '</p></div>' +

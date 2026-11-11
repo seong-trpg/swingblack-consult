@@ -12,7 +12,7 @@
   var ad = { tab: 'prices', draft: null, checked: {} };
   var TABS = [
     ['prices', '가격·할인가'], ['switch', '할인·홍보'], ['validity', '레슨 유효기간'], ['pros', '프로 정보'],
-    ['texts', '문구'], ['images', '이미지 상태'], ['history', '이력·백업'], ['settings', '설정']
+    ['texts', '문구'], ['kiosk', '터치스크린'], ['images', '이미지 상태'], ['history', '이력·백업'], ['settings', '설정']
   ];
   var GROUPS = [
     ['멤버십', function (k) { return k.indexOf('mem.') === 0; }],
@@ -109,9 +109,11 @@
       '<p class="ad-state ' + (live ? 'on' : '') + '">' + (live ? '저장하면 오늘 고객 화면에 버튼이 보입니다.' : '저장하면 오늘 고객 화면에 버튼이 보이지 않습니다.') + '</p>' +
       (d.discount.on && !hasSale ? '<p class="ad-warn">할인가가 입력된 항목이 없습니다. 가격·할인가 탭에서 할인가를 먼저 넣어 주세요.</p>' : '') +
       '</section><section class="ad-group"><h3>홍보 문구</h3>' +
-      '<p class="ad-help">이벤트처럼 기간이 정해진 문구를 홈 화면에 띄웁니다. 이벤트가 없을 때는 꺼 두세요.</p>';
+      '<p class="ad-help">이벤트처럼 기간이 정해진 문구를 홈 화면에 띄웁니다. 터치스크린에서는 같은 문구가 이벤트 배너에 크게 나옵니다. 이벤트가 없을 때는 꺼 두세요.</p>';
     d.promos.forEach(function (p, i) {
-      html += '<div class="ad-card">' + field('문구', 'promos/' + i + '/text') + toggle('홈 화면에 보이기', 'promos/' + i + '/on') +
+      html += '<div class="ad-card">' + field('문구', 'promos/' + i + '/text') +
+        field('설명 한 줄 (선택, 터치스크린 배너에만 보임)', 'promos/' + i + '/detail') +
+        toggle('홈 화면과 터치스크린 배너에 보이기', 'promos/' + i + '/on') +
         periodFields('promos/' + i) +
         '<button class="link danger" data-act="ad-del" data-list="promos" data-i="' + i + '">' + IL.icon('trash') + '이 문구 삭제</button></div>';
     });
@@ -183,6 +185,31 @@
     return html;
   }
 
+  // ---------- 탭: 터치스크린 (세로 대형 화면, kiosk.html) ----------
+  var ZONE_NAMES = { prices: '가격표', site: '상담 사이트(터치 영역)', banner: '띠 배너' };
+  var ZONE_ORDERS = ['banner-site-prices', 'prices-site-banner', 'site-banner-prices', 'site-prices-banner', 'prices-banner-site', 'banner-prices-site'];
+  function orderLabel(o) {
+    return o.split('-').map(function (z) { return ZONE_NAMES[z]; }).join(' → ');
+  }
+  function tabKiosk() {
+    var cur = ad.draft.kiosk.order;
+    return '<p class="ad-help">세로로 세운 대형 터치스크린(kiosk.html)에만 쓰이는 설정입니다. 태블릿 화면은 바뀌지 않습니다.</p>' +
+      '<section class="ad-group"><h3>구역 순서</h3>' +
+      '<label class="fl"><span>위에서부터</span><select class="field" data-bind="kiosk/order" data-t="text">' +
+      ZONE_ORDERS.map(function (o) {
+        return '<option value="' + o + '"' + (o === cur ? ' selected' : '') + '>' + orderLabel(o) + '</option>';
+      }).join('') + '</select>' +
+      '<small>구역 높이는 띠 배너, 상담 사이트, 가격표가 각각 정해져 있습니다. 순서를 바꾸면 손으로 누르는 상담 사이트의 높이가 달라집니다.</small></label></section>' +
+      '<section class="ad-group"><h3>가격표</h3>' +
+      field('제목', 'kiosk/boardTitle') + field('안내 문구', 'kiosk/boardNote') +
+      toggle('할인 기간에 가격표에도 할인가 보이기', 'kiosk/boardSale') +
+      '<p class="ad-help">꺼 두면 가격표에는 항상 원가만 보입니다. 켜면 할인·홍보 탭의 할인 적용 버튼이 켜져 있는 기간에, 할인가를 넣은 항목만 할인가로 보입니다.</p></section>' +
+      '<section class="ad-group"><h3>띠 배너</h3>' +
+      '<p class="ad-help">배너 그림 파일(이미지 상태 탭의 터치스크린 배너)이 있으면 그 그림을, 없으면 할인·홍보 탭에서 켠 홍보 문구를 보여 줍니다. 둘 다 없으면 아래 기본 문구가 나옵니다.</p>' +
+      field('이벤트가 없을 때 보이는 문구', 'kiosk/bannerCall') +
+      field('배너가 넘어가는 시간 (초)', 'kiosk/bannerSec', { type: 'num' }) + '</section>';
+  }
+
   // ---------- 탭: 이미지 상태 ----------
   function tabImages() {
     var m = SB.assets.manifest, keys = Object.keys(m);
@@ -231,7 +258,7 @@
       '<button class="btn ghost sm" data-act="ad-pin">PIN 바꾸기</button></section>';
   }
 
-  var TAB_FN = { prices: tabPrices, switch: tabSwitch, validity: tabValidity, pros: tabPros, texts: tabTexts, images: tabImages, history: tabHistory, settings: tabSettings };
+  var TAB_FN = { prices: tabPrices, switch: tabSwitch, validity: tabValidity, pros: tabPros, texts: tabTexts, kiosk: tabKiosk, images: tabImages, history: tabHistory, settings: tabSettings };
 
   SB.screens.admin = {
     enter: function () {
@@ -377,7 +404,7 @@
     SB.render();
   };
   A['ad-add-promo'] = function () {
-    ad.draft.promos.push({ id: 'p' + Date.now(), text: '', on: false, start: '', end: '' });
+    ad.draft.promos.push({ id: 'p' + Date.now(), text: '', detail: '', on: false, start: '', end: '' });
     SB.render();
   };
   A['ad-add-guide'] = function () { ad.draft.guide.push({ title: '', body: '' }); SB.render(); };
@@ -416,6 +443,8 @@
     if (d.discount.start && d.discount.end && d.discount.start > d.discount.end) errors.push('할인 시작일이 종료일보다 늦습니다.');
     if (d.discount.on && !P.hasAnySaleItem(d.items)) warnings.push('할인 적용 버튼을 켰지만 할인가가 입력된 항목이 없습니다.');
     if (d.settings.voiceRate < 0.7 || d.settings.voiceRate > 1.2) errors.push('음성 속도는 0.7에서 1.2 사이로 넣어 주세요.');
+    if (ZONE_ORDERS.indexOf(d.kiosk.order) < 0) errors.push('터치스크린 구역 순서를 다시 골라 주세요.');
+    if (!(d.kiosk.bannerSec >= 3)) errors.push('터치스크린 배너가 넘어가는 시간은 3초 이상으로 넣어 주세요.');
     return { errors: errors.filter(function (e, i, a) { return a.indexOf(e) === i; }), warnings: warnings };
   }
 

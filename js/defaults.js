@@ -8,7 +8,7 @@
   function defaults() {
     var pricing = root.SBPricing.defaultPricing();
     return {
-      schema: 8,
+      schema: 9,
       items: pricing.items,
       validity: pricing.validity,
       couponMonths: pricing.couponMonths,
@@ -17,6 +17,7 @@
       discount: { on: false, start: '', end: '' },
 
       // 기간 한정 홍보 문구: 기본값 모두 꺼짐.
+      // 터치스크린의 이벤트 배너에도 같은 문구가 크게 나온다. detail(선택)은 배너에만 보이는 설명 한 줄이다.
       promos: [
         { id: 'thanks', text: '분기 회원감사 이벤트', on: false, start: '', end: '' },
         { id: 'sale', text: '파격 할인 이벤트', on: false, start: '', end: '' },
@@ -151,6 +152,21 @@
         facility: '더스윙블랙은 여섯 가지를 약속드립니다. 넓은 1인 타석부터 고품격 프로 레슨까지, 천천히 살펴보세요.',
         pros: '저희 센터에는 KPGA 프로 두 분이 소속되어 있습니다. 근무 시간과 휴무일을 확인하고 레슨을 예약해 주세요.',
         guide: '이용 안내입니다. 24시간 운영하며, 하루 한 번 60분 이용이 기본입니다.'
+      },
+
+      /*
+       * 터치스크린(세로 대형 화면, kiosk.html) 전용 설정. 태블릿 화면에는 쓰이지 않는다.
+       * order: 위에서부터 구역 순서. banner=띠 배너, site=상담 사이트(가로형, 터치 영역), prices=가격표.
+       *   2026-11-11 사용자 결정: 터치 영역이 너무 낮아 위로 올렸다. 위에 띠 배너, 그다음 터치 영역, 아래에 가격표.
+       * boardSale: 가격판에 할인가를 보여 줄지. 꺼져 있으면 가격판은 항상 원가만 보인다(태블릿의 할인 적용 버튼과 같은 원칙).
+       */
+      kiosk: {
+        order: 'banner-site-prices',
+        boardTitle: '멤버십 가격',
+        boardNote: '가격을 누르면 그 구성의 견적이 상담 화면에 열립니다',
+        boardSale: false,
+        bannerCall: '화면을 터치해 내 이용권 가격을 확인해 보세요',
+        bannerSec: 8
       },
 
       settings: {

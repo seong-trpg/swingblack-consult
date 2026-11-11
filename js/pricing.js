@@ -233,6 +233,61 @@
     return r.rate > 0 ? '1개월권보다 ' + r.rate + '% 저렴' : '';
   }
 
+  /*
+   * 가격판(터치스크린의 게시용 가격표)에 쓰는 값. 화면 코드에서 나누거나 고르지 않도록 여기서 모두 계산한다.
+   * useSale이 참이면 할인가가 입력된 항목은 할인가를 보여 줄 값(shown)으로 쓴다.
+   * 돌려주는 값:
+   *   rows:    [{ months, cells: [{ slot, months, key, price, shown, onSale, monthly }] }]  멤버십 기간 × 시간대
+   *   lessons: [{ min, pkg, solo }]   레슨 1회당 가장 낮은 값(패키지가, 단독가)
+   *   daily, coupons[{ count, months, ... }], lockers[{ id, name, ... }], lockerFrom, anySale
+   */
+  function board(cfg, useSale) {
+    var items = cfg.items;
+    var anySale = false;
+    function cell(key, months) {
+      var p = pair(items, key);
+      var on = !!useSale && p.hasSale;
+      var shown = on ? p.sale : p.price;
+      if (on) anySale = true;
+      return { key: key, price: p.price, shown: shown, onSale: on, monthly: Math.round(shown / (months || 1)) };
+    }
+    function perSessionFrom(mode, min) {
+      var best = Infinity;
+      LESSON_COUNTS.forEach(function (c) {
+        best = Math.min(best, cell(mode + '.' + min + '.' + c, 1).shown / c);
+      });
+      return Math.round(best);
+    }
+    var rows = MONTHS.map(function (m) {
+      return {
+        months: m,
+        cells: [1, 2, 3].map(function (s) {
+          var c = cell('mem.' + m + '.' + s, m);
+          c.slot = s; c.months = m;
+          return c;
+        })
+      };
+    });
+    var lessons = LESSON_MINUTES.map(function (min) {
+      return { min: min, pkg: perSessionFrom('pkg', min), solo: perSessionFrom('solo', min) };
+    });
+    var coupons = [10, 20].map(function (n) {
+      var c = cell('coupon.' + n, 1);
+      c.count = n; c.months = cfg.couponMonths[n];
+      return c;
+    });
+    var lockers = Object.keys(LOCKERS).map(function (id) {
+      var c = cell('locker.' + id, 1);
+      c.id = id; c.name = LOCKERS[id];
+      return c;
+    });
+    return {
+      rows: rows, lessons: lessons, daily: cell('daily', 1), coupons: coupons, lockers: lockers,
+      lockerFrom: Math.min.apply(null, lockers.map(function (l) { return l.shown; })),
+      anySale: anySale
+    };
+  }
+
   function fmt(n) {
     return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
@@ -305,7 +360,7 @@
     isPackageEligible: isPackageEligible, periodMonths: periodMonths, describe: describe,
     packageExtraMonths: packageExtraMonths, packageExtraList: packageExtraList,
     quote: quote, view: view, compare: compare,
-    breakevenDays: breakevenDays, repeatOneMonth: repeatOneMonth, longTermNote: longTermNote,
+    breakevenDays: breakevenDays, repeatOneMonth: repeatOneMonth, longTermNote: longTermNote, board: board,
     fmt: fmt, won: won, numToKorean: numToKorean, wonSpoken: wonSpoken,
     validateItems: validateItems, bulkSale: bulkSale, hasAnySaleItem: hasAnySaleItem
   };

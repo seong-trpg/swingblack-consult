@@ -1,6 +1,7 @@
 /*
  * AI 보이스와 효과음.
- * - 음성: assets/audio/voice/<id>.mp3 파일이 있으면 그 파일을, 없으면 기기의 한국어 음성 합성을 쓴다.
+ * - 음성: 고객이 시작 화면에서 고른 목소리(여성 female / 남성 male)의 파일
+ *   assets/audio/voice/<female|male>/<id>.mp3 이 있으면 그 파일을, 없으면 기기의 한국어 음성 합성을 쓴다.
  * - 효과음: 파일 없이 Web Audio로 짧게 합성한다(0.2~1초, 음성보다 작게).
  * - 일시정지: pause()/resume()으로 멈췄다 이어 재생한다(인트로 재생바에서 쓴다).
  */
@@ -9,7 +10,8 @@
 
   var voiceOn = true, sfxOn = true, rate = 0.92;
   var ctx = null;
-  var missing = {};          // 음성 파일이 없는 id
+  var kind = 'female';       // 고른 목소리: 'female' 또는 'male'
+  var missing = {};          // 음성 파일이 없는 '<목소리>/<id>'
   var currentAudio = null;
   var token = 0;             // 재생 중인 멘트 식별(중간에 끊긴 멘트의 콜백을 무시)
   var last = null;
@@ -24,10 +26,20 @@
   var cur = null;
   var paused = false;
 
+  // 기기 음성 합성에서 고른 목소리와 같은 성별의 한국어 음성을 찾는다.
+  // 기기 음성 이름에 성별이 드러나는 경우에만 맞출 수 있고, 못 찾으면 기기의 기본 한국어 음성을 쓴다.
+  var NAME = {
+    male: /(^|[^e])male|남성|남자|injoon|인준|hyunsu|현수|bongjin|봉진|gookmin|국민/i,
+    female: /female|여성|여자|heami|해미|sunhi|선히|yuna|유나|jimin|지민|seoyeon|서연|soonbok|순복|yujin|유진/i
+  };
   function pickVoice() {
     if (!root.speechSynthesis) return;
-    var list = root.speechSynthesis.getVoices() || [];
-    koVoice = list.filter(function (v) { return /^ko/i.test(v.lang); })[0] || null;
+    var list = (root.speechSynthesis.getVoices() || []).filter(function (v) { return /^ko/i.test(v.lang); });
+    koVoice = list.filter(function (v) { return NAME[kind].test(v.name || ''); })[0] || list[0] || null;
+  }
+  function setKind(k) {
+    kind = k === 'male' ? 'male' : 'female';
+    pickVoice();
   }
 
   // 브라우저는 화면을 터치하기 전에는 소리를 막으므로 첫 터치에서 호출한다.
@@ -69,7 +81,7 @@
     onCaption(text);
 
     var finished = false;
-    var me = { my: my, text: text, opt: opt, mode: 'timer', soundId: null, timer: null, left: 0, armedAt: 0, done: done };
+    var me = { my: my, text: text, opt: opt, mode: 'timer', soundId: null, timer: null, left: 0, armedAt: 0, done: done, startedAt: Date.now(), silenced: false };
     cur = me;
 
     function done() {
@@ -107,12 +119,13 @@
         if (koVoice) u.voice = koVoice;
         u.rate = rate;
         u.onstart = function () { started = true; };
-        u.onend = done;
-        u.onerror = function () { root.setTimeout(done, 400); };
+        // 낭독 도중에 소리를 끄면(silenced) 낭독은 끊기지만 멘트는 남은 시간만큼 자막으로 이어진다(setVoice).
+        u.onend = function () { if (!me.silenced) done(); };
+        u.onerror = function () { if (!me.silenced) root.setTimeout(done, 400); };
         root.speechSynthesis.speak(u);
         // 기기에 한국어 음성이 없어 소리가 시작되지 않으면 자막만 보여 주고 넘어간다.
         root.setTimeout(function () {
-          if (started || finished || my !== token) return;
+          if (started || finished || my !== token || me.silenced) return;
           try { root.speechSynthesis.cancel(); } catch (e) {}
           silent();
         }, 2500);
@@ -120,23 +133,45 @@
     }
 
     // 미리 만든 음성 파일이 있으면 Howler로 재생하고, 없으면 기기 음성 합성으로 넘어간다.
-    if (opt.id && !missing[opt.id] && root.Howl) {
+    var fileKey = kind + '/' + opt.id;
+    if (opt.id && !missing[fileKey] && root.Howl) {
       var fallback = function () {
-        missing[opt.id] = true;
+        missing[fileKey] = true;
         if (currentAudio) { try { currentAudio.unload(); } catch (e) {} currentAudio = null; }
         tts();
       };
       try {
         me.mode = 'howl';
         currentAudio = new root.Howl({
-          src: ['assets/audio/voice/' + opt.id + '.mp3'],
+          src: ['assets/audio/voice/' + fileKey + '.mp3'],
           onend: done, onloaderror: fallback, onplayerror: fallback
         });
         me.soundId = currentAudio.play();
         return;
-      } catch (e) { missing[opt.id] = true; }
+      } catch (e) { missing[fileKey] = true; }
     }
     tts();
+  }
+
+  /*
+   * 음성을 켜고 끈다. 재생 중인 멘트는 끊지 않는다(인트로에서 음소거해도 장면이 그대로 이어지게 하기 위함이다).
+   *   녹음 파일: 소리만 줄였다가, 다시 켜면 그 자리에서 다시 들린다.
+   *   기기 음성 합성: 소리만 끌 수 없어 낭독을 끊고, 남은 시간만큼 자막만 보여 준다.
+   */
+  function setVoice(on) {
+    on = !!on;
+    if (on === voiceOn) return;
+    voiceOn = on;
+    var c = cur;
+    if (!c) return;
+    if (c.mode === 'howl' && currentAudio) {
+      try { currentAudio.mute(!on); } catch (e) {}
+    } else if (c.mode === 'tts' && !on && !paused) {
+      c.silenced = true;
+      c.mode = 'timer';
+      try { root.speechSynthesis.cancel(); } catch (e) {}
+      c.arm(Math.max(600, estimate(c.text) - (Date.now() - c.startedAt)));
+    }
   }
 
   function replay() {
@@ -235,9 +270,13 @@
     unlock: unlock, speak: speak, stop: stop, replay: replay, sfx: sfx, estimate: estimate,
     pause: pause, resume: resume, duration: duration,
     isPaused: function () { return paused; },
-    setVoice: function (on) { voiceOn = !!on; if (!on) stop(); },
+    setVoice: setVoice,
+    // 지금 멘트가 소리를 내는 방식: 'howl'(녹음 파일), 'tts'(기기 음성), 'timer'(소리 없이 자막만), 없으면 null
+    mode: function () { return cur ? cur.mode : null; },
     setSfx: function (on) { sfxOn = !!on; },
     setRate: function (r) { rate = r || 0.92; },
+    setKind: setKind,
+    kind: function () { return kind; },
     isVoiceOn: function () { return voiceOn; },
     isSfxOn: function () { return sfxOn; },
     hasLast: function () { return !!last; },
