@@ -76,6 +76,22 @@
       // (바꾸지 않으면 설정을 저장한 적 있는 태블릿은 예전 원고와 새 음성·그림이 어긋난다.)
       cfg.intro = base.intro;
     }
+    if (from < 8) {
+      // v8 (2026-11-11): 약속 문구 개정(7가지 → 6가지: 2·3번을 합치고 5·7번 문구 변경)과 그에 맞춘 시설 소개 멘트.
+      // 예전 초기값 그대로인 경우만 바꾸고, 직원이 고친 문구는 그대로 둔다.
+      var oldPromises = [
+        '일반 연습장보다 1.5배 이상 넓은 검단 유일의 1인 타석',
+        '레슨권 매출 100%를 레슨 프로에게 배당, 일반 매장보다 경쟁력 있는 가격',
+        '패키지 상품을 회원이 직접 조합하는 맞춤형 상품',
+        '기본 1일 1회 60분, 빈 타석이 2개 이상이면 연장 이용 가능',
+        '매일 미화 작업으로 쾌적한 환경',
+        '10년을 내다보며 최고의 아카데미를 만드는 노력',
+        '매니저 프로님들의 최상의 서비스'
+      ];
+      if (cfg.texts && JSON.stringify(cfg.texts.promises) === JSON.stringify(oldPromises)) cfg.texts.promises = base.texts.promises;
+      var oldFacilityMent = '더스윙블랙은 일곱 가지를 약속드립니다. 넓은 1인 타석부터 최상의 서비스까지, 천천히 살펴보세요.';
+      if (cfg.ments && cfg.ments.facility === oldFacilityMent) cfg.ments.facility = base.ments.facility;
+    }
     cfg.schema = base.schema;
     return cfg;
   }
@@ -120,7 +136,7 @@
     var names = {
       'schema': '설정 버전', 'discount.on': '할인 적용 버튼', 'discount.start': '할인 시작일', 'discount.end': '할인 종료일',
       'promos': '홍보 문구', 'pros': '프로 정보', 'facility': '시설 소개 카드', 'guide': '이용 안내',
-      'texts.promises': '7가지 약속', 'texts.trust': '신뢰 지표', 'texts.terms': '이용약관 원문',
+      'texts.promises': '약속 문구', 'texts.trust': '신뢰 지표', 'texts.terms': '이용약관 원문',
       'texts.slogan1': '홈 슬로건 1', 'texts.slogan2': '홈 슬로건 2', 'texts.pledge': '다짐 문구',
       'texts.builderTagline': '이용권 설계 문구', 'texts.brand': '브랜드명', 'texts.branch': '지점명',
       'settings.voiceOn': 'AI 보이스 기본값', 'settings.sfxOn': '효과음 기본값',

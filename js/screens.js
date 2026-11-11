@@ -261,7 +261,7 @@
           '<div><b>이용권 설계</b><span>' + esc(t.builderTagline) + '</span>' +
           '<em>시간대, 기간, 레슨, 락커를 고르면 가격이 바로 나옵니다</em></div>' + IL.icon('next') + '</button>' +
           '<div class="menu-row">' +
-          '<button class="menu-sub" data-act="go" data-to="facility">' + IL.art('bay') + '<b>시설 소개</b><span>7가지 약속과 시설</span></button>' +
+          '<button class="menu-sub" data-act="go" data-to="facility">' + IL.art('bay') + '<b>시설 소개</b><span>' + t.promises.length + '가지 약속과 시설</span></button>' +
           '<button class="menu-sub" data-act="go" data-to="lesson">' + IL.art('lesson') + '<b>레슨·프로</b><span>레슨 종류와 소속 프로</span></button>' +
           '<button class="menu-sub" data-act="go" data-to="guide">' + IL.art('guide') + '<b>이용 안내</b><span>이용 시간과 규정</span></button>' +
           '</div></nav>' +
@@ -291,7 +291,8 @@
       var cards = cfg.facility.filter(function (f) { return f.on !== false; });
       var trust = t.trust.filter(function (x) { return x.on !== false; });
       return {
-        html: '<h1 class="q">스윙블랙의 7가지 약속</h1>' +
+        // 제목의 "N가지"는 약속 목록의 개수를 따른다(2026-11-11에 7가지에서 6가지로 바뀜).
+        html: '<h1 class="q">스윙블랙의 ' + t.promises.length + '가지 약속</h1>' +
           '<ol class="promises">' + t.promises.map(function (p, i) {
             return '<li><span>' + (i + 1 < 10 ? '0' : '') + (i + 1) + '</span><p>' + esc(p) + '</p></li>';
           }).join('') + '</ol>' +

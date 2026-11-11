@@ -162,7 +162,7 @@
       '<div class="row2">' + field('브랜드명', 'texts/brand') + field('지점명', 'texts/branch') + '</div>' +
       field('홈 슬로건 1', 'texts/slogan1') + field('홈 슬로건 2', 'texts/slogan2') +
       field('이용권 설계 문구', 'texts/builderTagline') + field('다짐 문구', 'texts/pledge') + '</section>' +
-      '<section class="ad-group"><h3>7가지 약속</h3>' + d.texts.promises.map(function (p, i) {
+      '<section class="ad-group"><h3>' + d.texts.promises.length + '가지 약속</h3>' + d.texts.promises.map(function (p, i) {
         return field((i + 1) + '번', 'texts/promises/' + i);
       }).join('') + '</section>' +
       '<section class="ad-group"><h3>신뢰 지표</h3><p class="ad-help">1위, 최고 같은 표현은 조사 기관과 시기 등 근거 자료를 보관한 범위에서만 쓰세요.</p>' +
