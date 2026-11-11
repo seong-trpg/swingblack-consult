@@ -197,6 +197,9 @@
       current = root.gsap.timeline();
       try { motion[scene](current, el); } catch (e) { /* 모션 실패 시 정지 화면으로 둔다 */ }
     },
-    stop: function () { if (current) { current.kill(); current = null; } }
+    stop: function () { if (current) { current.kill(); current = null; } },
+    // 장면 모션을 멈췄다 이어 재생한다(인트로 재생바의 일시정지·재생)
+    pause: function () { if (current) current.pause(); },
+    resume: function () { if (current) current.resume(); }
   };
 })(typeof self !== 'undefined' ? self : this);

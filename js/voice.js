@@ -2,6 +2,7 @@
  * AI 보이스와 효과음.
  * - 음성: assets/audio/voice/<id>.mp3 파일이 있으면 그 파일을, 없으면 기기의 한국어 음성 합성을 쓴다.
  * - 효과음: 파일 없이 Web Audio로 짧게 합성한다(0.2~1초, 음성보다 작게).
+ * - 일시정지: pause()/resume()으로 멈췄다 이어 재생한다(인트로 재생바에서 쓴다).
  */
 (function (root) {
   'use strict';
@@ -14,6 +15,14 @@
   var last = null;
   var onCaption = function () {};
   var koVoice = null;
+  /*
+   * 지금 재생 중인 멘트. mode는 소리를 내는 방식이다.
+   *   howl  녹음 파일 재생            → 멈춘 자리에서 이어 재생할 수 있다
+   *   tts   기기 음성 합성            → 기기마다 일시정지가 불안정해, 멈추면 끊고 재개할 때 처음부터 다시 읽는다
+   *   timer 소리 없이 자막만(음성 꺼짐) → 남은 시간만큼 다시 기다린다
+   */
+  var cur = null;
+  var paused = false;
 
   function pickVoice() {
     if (!root.speechSynthesis) return;
@@ -36,6 +45,8 @@
 
   function stop() {
     token++;
+    if (cur) { root.clearTimeout(cur.timer); cur = null; }
+    paused = false;
     if (currentAudio) { try { currentAudio.stop(); currentAudio.unload(); } catch (e) {} currentAudio = null; }
     if (root.speechSynthesis) { try { root.speechSynthesis.cancel(); } catch (e) {} }
     onCaption(null);
@@ -47,7 +58,7 @@
   }
 
   /*
-   * speak(text, { id, say, onend, silentOk })
+   * speak(text, { id, say, onend })
    * 음성이 꺼져 있어도 자막은 띄우고, 어림한 시간이 지나면 onend를 부른다.
    */
   function speak(text, opt) {
@@ -58,22 +69,38 @@
     onCaption(text);
 
     var finished = false;
+    var me = { my: my, text: text, opt: opt, mode: 'timer', soundId: null, timer: null, left: 0, armedAt: 0, done: done };
+    cur = me;
+
     function done() {
       if (finished || my !== token) return;
       finished = true;
+      root.clearTimeout(me.timer);
+      if (cur === me) cur = null;
       onCaption(null);
       if (opt.onend) opt.onend();
     }
+    // ms 뒤에 끝난 것으로 처리한다. 일시정지하면 남은 시간을 기억했다가 다시 건다.
+    function arm(ms) {
+      root.clearTimeout(me.timer);
+      me.left = ms;
+      me.armedAt = Date.now();
+      me.timer = root.setTimeout(done, ms);
+    }
+    me.arm = arm;
 
-    if (!voiceOn) { root.setTimeout(done, estimate(text)); return; }
+    if (!voiceOn) { arm(estimate(text)); return; }
 
     // 음성이 멈춘 채 끝나지 않는 경우를 대비한 안전 장치
-    root.setTimeout(done, estimate(text) * 2 + 3000);
+    arm(estimate(text) * 2 + 3000);
+
+    function silent() { me.mode = 'timer'; arm(estimate(text)); }
 
     function tts() {
       if (my !== token) return;
-      if (!root.speechSynthesis || !root.SpeechSynthesisUtterance) { root.setTimeout(done, estimate(text)); return; }
+      if (!root.speechSynthesis || !root.SpeechSynthesisUtterance) { silent(); return; }
       try {
+        me.mode = 'tts';
         var u = new root.SpeechSynthesisUtterance(opt.say || text);
         var started = false;
         u.lang = 'ko-KR';
@@ -87,9 +114,9 @@
         root.setTimeout(function () {
           if (started || finished || my !== token) return;
           try { root.speechSynthesis.cancel(); } catch (e) {}
-          root.setTimeout(done, estimate(text));
+          silent();
         }, 2500);
-      } catch (e) { root.setTimeout(done, estimate(text)); }
+      } catch (e) { silent(); }
     }
 
     // 미리 만든 음성 파일이 있으면 Howler로 재생하고, 없으면 기기 음성 합성으로 넘어간다.
@@ -100,11 +127,12 @@
         tts();
       };
       try {
+        me.mode = 'howl';
         currentAudio = new root.Howl({
           src: ['assets/audio/voice/' + opt.id + '.mp3'],
           onend: done, onloaderror: fallback, onplayerror: fallback
         });
-        currentAudio.play();
+        me.soundId = currentAudio.play();
         return;
       } catch (e) { missing[opt.id] = true; }
     }
@@ -113,6 +141,43 @@
 
   function replay() {
     if (last) speak(last.text, last.opt);
+  }
+
+  // 재생 중인 멘트를 멈춘다. 멈췄으면 true.
+  function pause() {
+    if (paused || !cur) return false;
+    paused = true;
+    root.clearTimeout(cur.timer);
+    cur.left = Math.max(0, cur.left - (Date.now() - cur.armedAt));
+    if (cur.mode === 'howl' && currentAudio) {
+      try { currentAudio.pause(cur.soundId); } catch (e) {}
+    } else if (cur.mode === 'tts') {
+      token++; // 끊긴 낭독의 콜백을 무시한다. 재개할 때 처음부터 다시 읽는다.
+      try { root.speechSynthesis.cancel(); } catch (e) {}
+    }
+    return true;
+  }
+
+  // 멈춘 멘트를 이어 재생한다. 'continue' = 멈춘 자리부터, 'restart' = 처음부터 다시, 'none' = 이어 갈 멘트 없음.
+  function resume() {
+    if (!paused) return 'none';
+    paused = false;
+    var c = cur;
+    if (!c) return 'none';
+    if (c.mode === 'tts') { speak(c.text, c.opt); return 'restart'; }
+    if (c.mode === 'howl' && currentAudio) {
+      try { currentAudio.play(c.soundId); } catch (e) {}
+    }
+    c.arm(Math.max(300, c.left));
+    return 'continue';
+  }
+
+  // 재생 중인 녹음 파일의 길이(초). 녹음 파일이 아니거나 아직 읽는 중이면 0.
+  function duration() {
+    try {
+      if (cur && cur.mode === 'howl' && currentAudio && currentAudio.state() === 'loaded') return currentAudio.duration() || 0;
+    } catch (e) {}
+    return 0;
   }
 
   // 효과음 합성 도우미
@@ -168,6 +233,8 @@
 
   root.SBVoice = {
     unlock: unlock, speak: speak, stop: stop, replay: replay, sfx: sfx, estimate: estimate,
+    pause: pause, resume: resume, duration: duration,
+    isPaused: function () { return paused; },
     setVoice: function (on) { voiceOn = !!on; if (!on) stop(); },
     setSfx: function (on) { sfxOn = !!on; },
     setRate: function (r) { rate = r || 0.92; },

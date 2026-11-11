@@ -346,13 +346,42 @@ textarea.field { resize: vertical; line-height: 1.5; }
 .in-slots .rail-track { height: min(1.6rem, 6cqh); }
 .in-start { text-align: center; display: flex; flex-direction: column; gap: min(2rem, 6cqh); align-items: center; }
 .in-start p { font-size: 1.3rem; font-weight: 700; }
+/* 재생바: 장면 그림과 자막 사이. 일시정지·재생 버튼, 장면 칸(누르면 이동), 장면 번호 */
+.playbar { display: flex; align-items: center; gap: 0.8rem; flex: none; padding: 0.5rem var(--pad) 0.6rem; }
+.pb-btn {
+  flex: none; width: 3.2rem; height: 3.2rem; border-radius: 50%; display: grid; place-items: center;
+  background: var(--primary); color: var(--on-primary); transition: transform 0.15s, background 0.2s;
+}
+.pb-btn:active { transform: scale(0.94); }
+.pb-btn .ic { width: 1.5rem; height: 1.5rem; fill: currentColor; stroke-width: 1.4; }
+.pb-btn[data-state="ended"] .ic { fill: none; stroke-width: 2.4; }
+.playbar.paused .pb-btn { background: var(--ink); }
+.pb-track { flex: 1; display: flex; gap: 0.3rem; min-width: 0; }
+/* 칸마다 터치 영역은 넉넉하게(높이 2.8rem), 보이는 막대는 가늘게 */
+.pb-seg { flex: 1; height: 2.8rem; display: flex; align-items: center; min-width: 0; }
+.pb-seg span { display: block; width: 100%; height: 0.45rem; border-radius: 0.25rem; background: var(--line); overflow: hidden; }
+.pb-seg i { display: block; height: 100%; width: 0; border-radius: 0.25rem; background: var(--primary); }
+.pb-seg.past i { width: 100%; background: var(--sky); }
+.pb-seg.on span { height: 0.6rem; }
+.playbar.paused .pb-seg.on i { background: var(--ink); }
+.pb-count { flex: none; min-width: 3rem; text-align: right; font-size: 0.85rem; color: var(--mute); font-weight: 600; }
+.pb-count b { color: var(--ink); font-weight: 800; font-size: 1rem; }
 .subtitle { margin: 0 var(--pad); padding: 1rem 1.1rem; min-height: 6.6rem; border-top: 1px solid var(--line); }
 .subtitle p { margin-top: 0.5rem; font-size: 1.15rem; font-weight: 600; line-height: 1.55; }
 .intro-nav { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem var(--pad) 1.2rem; }
-.dots { display: flex; gap: 0.4rem; }
-.dots i { width: 1.3rem; height: 0.3rem; border-radius: 2px; background: var(--line); }
-.dots i.past { background: var(--sky); }
-.dots i.on { background: var(--primary); }
+/* 세로가 낮은 화면(가로로 눕힌 작은 화면): 재생바·자막·버튼 줄의 여백을 줄여 장면 그림 자리를 남긴다 */
+@media (max-height: 700px) {
+  .intro-top { padding: 0.3rem var(--pad); }
+  .skip { min-height: 2.6rem; }
+  .playbar { padding: 0.1rem var(--pad) 0.2rem; }
+  .pb-btn { width: 2.6rem; height: 2.6rem; }
+  .pb-seg { height: 2.6rem; }
+  .subtitle { min-height: 0; padding: 0.4rem 1.1rem; }
+  .subtitle .cap-tag { display: none; }
+  .subtitle p { margin-top: 0; font-size: 0.9rem; line-height: 1.4; }
+  .intro-nav { padding: 0.3rem var(--pad) 0.5rem; }
+  .intro-nav .tbtn { min-height: 2.6rem; }
+}
 
 /* ---------- 홈 ---------- */
 .scr-home .main { display: flex; flex-direction: column; }

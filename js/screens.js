@@ -46,48 +46,140 @@
 
   // ---------- 인트로 ----------
   var introToken = 0;
+  var MIN_SCENE = 4200;  // 한 장면을 보여 주는 최소 시간(ms)
+  var TAIL = 700;        // 음성이 끝난 뒤 다음 장면으로 넘어가기 전 쉬는 시간(ms)
+  /*
+   * 인트로 재생 상태. t는 이 장면을 실제로 재생한 시간(ms)이고 일시정지 중에는 멈춘다.
+   * 다음 장면으로 넘어가는 조건: 음성이 끝났고(voiceDone) t가 최소 시간과 음성 끝 + 쉬는 시간을 모두 넘겼을 때.
+   */
+  var player = { t: 0, last: 0, voiceDone: false, doneAt: 0, paused: false, ended: false };
+
+  function resetPlayer() {
+    player.t = 0; player.last = Date.now();
+    player.voiceDone = false; player.doneAt = 0; player.paused = false; player.ended = false;
+  }
+  // 이 장면이 끝나는 시각(ms). 음성이 끝나기 전에는 녹음 길이나 글자 수로 어림한다.
+  function sceneEnd(sc) {
+    if (player.voiceDone) return Math.max(MIN_SCENE, player.doneAt + TAIL);
+    var d = V.duration();
+    return Math.max(MIN_SCENE, (d ? d * 1000 : V.estimate(sc.text)) + TAIL);
+  }
+  function playerState() {
+    return player.ended ? 'ended' : (player.paused ? 'paused' : 'playing');
+  }
+  var PB_LABEL = { playing: '일시정지', paused: '재생', ended: '처음부터 다시 보기' };
+  var PB_ICON = { playing: 'pause', paused: 'play', ended: 'replay' };
+
+  // 재생바를 지금 상태로 맞춘다(화면을 다시 그리지 않는다. 다시 그리면 장면 모션이 처음부터 시작된다).
+  function paintPlayer() {
+    var bar = doc.getElementById('playbar');
+    if (!bar) return;
+    var sc = SB.cfg.intro[SB.S.intro];
+    var p = sc ? Math.min(1, player.t / sceneEnd(sc)) : 0;
+    if (!player.voiceDone) p = Math.min(p, 0.97);
+    if (player.ended) p = 1;
+    var fill = bar.querySelector('.pb-seg.on i');
+    if (fill) fill.style.width = (p * 100).toFixed(1) + '%';
+    var state = playerState(), btn = doc.getElementById('pbBtn');
+    if (btn && btn.getAttribute('data-state') !== state) {
+      btn.setAttribute('data-state', state);
+      btn.setAttribute('aria-label', PB_LABEL[state]);
+      btn.innerHTML = IL.icon(PB_ICON[state]);
+      bar.className = 'playbar ' + state;
+    }
+  }
 
   function speakScene() {
     var S = SB.S, list = SB.cfg.intro, i = S.intro, sc = list[i];
     if (!sc) return;
-    var my = ++introToken, started = Date.now();
+    var my = ++introToken;
+    resetPlayer();
     SB.keepAlive();
     SB.say(sc.text, {
       id: sc.id, say: sc.say,
       onend: function () {
         if (my !== introToken || SB.S.screen !== 'intro') return;
-        var wait = Math.max(700, 4200 - (Date.now() - started));
-        root.setTimeout(function () {
-          if (my !== introToken || SB.S.screen !== 'intro') return;
-          if (i < list.length - 1) showScene(i + 1);
-        }, wait);
+        player.voiceDone = true;
+        player.doneAt = player.t;
       }
     });
+    paintPlayer();
   }
   function showScene(i) {
     var list = SB.cfg.intro;
     SB.S.intro = Math.max(0, Math.min(list.length - 1, i));
+    resetPlayer();
     SB.render();
     speakScene();
   }
 
+  // 0.1초마다 재생 시간을 올리고, 장면이 끝나면 다음 장면으로 넘긴다.
+  root.setInterval(function () {
+    if (SB.S.screen !== 'intro') return;
+    var now = Date.now(), dt = Math.min(500, now - player.last);
+    player.last = now;
+    if (player.paused || player.ended) return;
+    player.t += dt;
+    var list = SB.cfg.intro, i = SB.S.intro, sc = list[i];
+    if (sc && player.voiceDone && player.t >= sceneEnd(sc)) {
+      if (i < list.length - 1) { showScene(i + 1); return; }
+      player.ended = true;
+    }
+    paintPlayer();
+  }, 100);
+
+  function pauseIntro() {
+    if (player.paused || player.ended) return;
+    player.paused = true;
+    V.pause();
+    root.SBIntro.pause();
+    paintPlayer();
+  }
+  function resumeIntro() {
+    if (!player.paused) return;
+    player.paused = false;
+    player.last = Date.now();
+    SB.keepAlive();
+    if (V.resume() === 'restart') {
+      // 기기 음성 합성은 멈춘 자리에서 잇지 못해 문장을 처음부터 다시 읽는다. 장면도 처음부터 맞춘다.
+      player.t = 0; player.voiceDone = false; player.doneAt = 0;
+      var sc = SB.cfg.intro[SB.S.intro];
+      if (sc) root.SBIntro.play(sc.scene, doc.getElementById('stage'), SB.reduced);
+    } else {
+      root.SBIntro.resume();
+    }
+    paintPlayer();
+  }
+  // 점검 스크립트에서 재생 상태를 읽을 때 쓴다.
+  SB.introState = function () {
+    return { t: player.t, paused: player.paused, ended: player.ended, voiceDone: player.voiceDone, state: playerState() };
+  };
+
   SB.screens.intro = {
-    enter: function () { SB.S.intro = 0; },
+    enter: function () { SB.S.intro = 0; resetPlayer(); },
     render: function () {
       var S = SB.S, list = SB.cfg.intro, sc = list[S.intro] || list[0];
       var last = S.intro === list.length - 1;
+      var state = playerState();
+      // 재생바: 일시정지·재생 버튼, 장면 9칸(누르면 그 장면으로 이동), 몇 번째 장면인지
+      var playbar = '<div class="playbar ' + state + '" id="playbar">' +
+        '<button class="pb-btn" id="pbBtn" data-act="intro-toggle" data-state="' + state + '" aria-label="' + PB_LABEL[state] + '">' + IL.icon(PB_ICON[state]) + '</button>' +
+        '<div class="pb-track">' + list.map(function (x, i) {
+          var cls = i === S.intro ? 'on' : (i < S.intro ? 'past' : '');
+          return '<button class="pb-seg ' + cls + '" data-act="intro-seek" data-i="' + i + '" aria-label="' + (i + 1) + '번째 장면으로 이동"' +
+            (i === S.intro ? ' aria-current="true"' : '') + '><span><i></i></span></button>';
+        }).join('') + '</div>' +
+        '<span class="pb-count"><b>' + (S.intro + 1) + '</b> / ' + list.length + '</span></div>';
       return {
         bare: true,
         html: '<div class="intro">' +
           '<div class="intro-top"><span class="intro-brand">' + esc(SB.cfg.texts.brand) + ' ' + esc(SB.cfg.texts.branch) + '</span>' +
           '<button class="skip" data-act="intro-done">건너뛰기' + IL.icon('next') + '</button></div>' +
           '<div class="stage scene-' + sc.scene + '" id="stage">' + root.SBIntro.html(sc.scene, SB.cfg, SB) + '</div>' +
+          playbar +
           '<div class="subtitle"><span class="cap-tag">AI 음성 안내</span><p>' + esc(sc.text) + '</p></div>' +
           '<div class="intro-nav">' +
           '<button class="tbtn" data-act="intro-prev"' + (S.intro === 0 ? ' disabled' : '') + '>' + IL.icon('back') + '<span>이전</span></button>' +
-          '<div class="dots">' + list.map(function (x, i) {
-            return '<i class="' + (i === S.intro ? 'on' : (i < S.intro ? 'past' : '')) + '"></i>';
-          }).join('') + '</div>' +
           (last ? '<button class="tbtn" data-act="intro-done"><span>홈으로</span>' + IL.icon('next') + '</button>'
             : '<button class="tbtn" data-act="intro-next"><span>다음</span>' + IL.icon('next') + '</button>') +
           '</div></div>'
@@ -96,10 +188,21 @@
     after: function (el) {
       var sc = SB.cfg.intro[SB.S.intro];
       if (sc) root.SBIntro.play(sc.scene, el.querySelector('#stage'), SB.reduced);
+      if (player.paused) root.SBIntro.pause();
+      paintPlayer();
     }
   };
   A['intro-next'] = function () { SB.sfx('click'); showScene(SB.S.intro + 1); };
   A['intro-prev'] = function () { SB.sfx('click'); showScene(SB.S.intro - 1); };
+  // 재생바 버튼: 재생 중이면 멈추고, 멈춰 있으면 이어 재생하고, 끝까지 봤으면 처음부터 다시 본다.
+  A['intro-toggle'] = function () {
+    SB.sfx('click');
+    if (player.ended) showScene(0);
+    else if (player.paused) resumeIntro();
+    else pauseIntro();
+  };
+  // 재생바의 장면 칸: 그 장면으로 이동해 재생한다.
+  A['intro-seek'] = function (d) { SB.sfx('click'); showScene(+d.i); };
   A['intro-done'] = function () {
     introToken++;
     root.SBIntro.stop();

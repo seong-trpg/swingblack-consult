@@ -92,6 +92,8 @@
     edit: '<path d="M5 19l1-4L16 5l3 3L9 18z"/>',
     trash: '<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/>',
     replay: '<path d="M19 12a7 7 0 1 1-2.2-5.1"/><path d="M19 4v4h-4"/>',
+    play: '<path d="M8 5.2v13.6l11-6.8z"/>',
+    pause: '<rect x="6.6" y="5.2" width="3.6" height="13.6" rx="0.9"/><rect x="13.8" y="5.2" width="3.6" height="13.6" rx="0.9"/>',
     next: '<path d="M9 5l7 7-7 7"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
     info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.4"/>'
