@@ -125,8 +125,18 @@
       if (i < list.length - 1) { showScene(i + 1); return; }
       player.ended = true;
     }
+    // 장면 그림은 음성이 원고의 해당 낱말에 닿을 때 차례로 나온다(js/intro.js의 박자).
+    if (sc) root.SBIntro.progress(player.ended ? 1 : speechProgress(sc));
     paintPlayer();
   }, 100);
+
+  // 음성이 원고의 어디쯤을 읽고 있는지(0~1). 음성이 끝난 뒤 쉬는 시간은 빼고 계산한다.
+  function speechProgress(sc) {
+    if (player.voiceDone) return 1;
+    var d = V.duration();
+    var speech = d ? d * 1000 : V.estimate(sc.text);
+    return Math.min(1, player.t / speech);
+  }
 
   function pauseIntro() {
     if (player.paused || player.ended) return;
@@ -144,7 +154,7 @@
       // 기기 음성 합성은 멈춘 자리에서 잇지 못해 문장을 처음부터 다시 읽는다. 장면도 처음부터 맞춘다.
       player.t = 0; player.voiceDone = false; player.doneAt = 0;
       var sc = SB.cfg.intro[SB.S.intro];
-      if (sc) root.SBIntro.play(sc.scene, doc.getElementById('stage'), SB.reduced);
+      if (sc) root.SBIntro.play(sc.scene, doc.getElementById('stage'), SB.reduced, sc.text);
     } else {
       root.SBIntro.resume();
     }
@@ -161,33 +171,42 @@
       var S = SB.S, list = SB.cfg.intro, sc = list[S.intro] || list[0];
       var last = S.intro === list.length - 1;
       var state = playerState();
-      // 재생바: 일시정지·재생 버튼, 장면 9칸(누르면 그 장면으로 이동), 몇 번째 장면인지
+      // 재생바 한 줄: [이전] [일시정지·재생] 장면 수만큼의 칸(누르면 그 장면으로 이동) 몇 번째 장면인지 [다음]
       var playbar = '<div class="playbar ' + state + '" id="playbar">' +
+        '<button class="tbtn pb-nav" data-act="intro-prev"' + (S.intro === 0 ? ' disabled' : '') + '>' + IL.icon('back') + '<span>이전</span></button>' +
         '<button class="pb-btn" id="pbBtn" data-act="intro-toggle" data-state="' + state + '" aria-label="' + PB_LABEL[state] + '">' + IL.icon(PB_ICON[state]) + '</button>' +
         '<div class="pb-track">' + list.map(function (x, i) {
           var cls = i === S.intro ? 'on' : (i < S.intro ? 'past' : '');
           return '<button class="pb-seg ' + cls + '" data-act="intro-seek" data-i="' + i + '" aria-label="' + (i + 1) + '번째 장면으로 이동"' +
             (i === S.intro ? ' aria-current="true"' : '') + '><span><i></i></span></button>';
         }).join('') + '</div>' +
-        '<span class="pb-count"><b>' + (S.intro + 1) + '</b> / ' + list.length + '</span></div>';
+        '<span class="pb-count"><b>' + (S.intro + 1) + '</b> / ' + list.length + '</span>' +
+        (last ? '<button class="tbtn pb-nav" data-act="intro-done"><span>홈으로</span>' + IL.icon('next') + '</button>'
+          : '<button class="tbtn pb-nav" data-act="intro-next"><span>다음</span>' + IL.icon('next') + '</button>') +
+        '</div>';
       return {
         bare: true,
         html: '<div class="intro">' +
           '<div class="intro-top"><span class="intro-brand">' + esc(SB.cfg.texts.brand) + ' ' + esc(SB.cfg.texts.branch) + '</span>' +
           '<button class="skip" data-act="intro-done">건너뛰기' + IL.icon('next') + '</button></div>' +
-          '<div class="stage scene-' + sc.scene + '" id="stage">' + root.SBIntro.html(sc.scene, SB.cfg, SB) + '</div>' +
+          '<div class="stage scene-' + sc.scene + '" id="stage">' + root.SBIntro.html(sc.scene, SB.cfg, SB, sc.text) + '</div>' +
           playbar +
           '<div class="subtitle"><span class="cap-tag">AI 음성 안내</span><p>' + esc(sc.text) + '</p></div>' +
-          '<div class="intro-nav">' +
-          '<button class="tbtn" data-act="intro-prev"' + (S.intro === 0 ? ' disabled' : '') + '>' + IL.icon('back') + '<span>이전</span></button>' +
-          (last ? '<button class="tbtn" data-act="intro-done"><span>홈으로</span>' + IL.icon('next') + '</button>'
-            : '<button class="tbtn" data-act="intro-next"><span>다음</span>' + IL.icon('next') + '</button>') +
-          '</div></div>'
+          '</div>'
       };
     },
     after: function (el) {
       var sc = SB.cfg.intro[SB.S.intro];
-      if (sc) root.SBIntro.play(sc.scene, el.querySelector('#stage'), SB.reduced);
+      if (sc) {
+        // 재생 도중에 화면을 다시 그린 경우(앱 시작 직후 사진 확인이 끝났을 때 등)에는
+        // 장면 모션을 처음부터 다시 틀지 않고, 진행 중이던 자리에서 이어 간다.
+        var mid = player.t > 300 || player.ended;
+        var d = V.duration();
+        root.SBIntro.play(sc.scene, el.querySelector('#stage'), SB.reduced, sc.text, mid ? {
+          p: player.ended ? 1 : speechProgress(sc),
+          total: d || V.estimate(sc.text) / 1000
+        } : null);
+      }
       if (player.paused) root.SBIntro.pause();
       paintPlayer();
     }
