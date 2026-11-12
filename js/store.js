@@ -142,7 +142,7 @@
       'schema': '설정 버전', 'discount.on': '할인 적용 버튼', 'discount.start': '할인 시작일', 'discount.end': '할인 종료일',
       'promos': '홍보 문구', 'pros': '프로 정보', 'facility': '시설 소개 카드', 'guide': '이용 안내',
       'texts.promises': '약속 문구', 'texts.trust': '신뢰 지표', 'texts.terms': '이용약관 원문',
-      'texts.slogan1': '홈 슬로건 1', 'texts.slogan2': '홈 슬로건 2', 'texts.pledge': '다짐 문구',
+      'texts.homeTitle': '홈 화면 큰 문구', 'texts.slogan1': '홈 슬로건 1', 'texts.slogan2': '홈 슬로건 2', 'texts.pledge': '다짐 문구',
       'texts.builderTagline': '이용권 설계 문구', 'texts.brand': '브랜드명', 'texts.branch': '지점명',
       'kiosk.order': '터치스크린 구역 순서', 'kiosk.boardTitle': '터치스크린 가격표 제목',
       'kiosk.boardNote': '터치스크린 가격표 안내 문구', 'kiosk.boardSale': '터치스크린 가격표 할인가 표시',

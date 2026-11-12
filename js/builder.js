@@ -814,7 +814,9 @@
           '<p class="q-sub">' + (list.length < 2 ? '구성을 하나 더 담으면 나란히 비교할 수 있습니다.' : (on ? '할인가 기준으로 비교합니다.' : '원가 기준으로 비교합니다.')) + '</p></div>' +
           (avail ? '<button class="btn sale" data-act="discount-toggle">' + (on ? '원가 보기' : '할인 적용') + '</button>' : '') + '</div>' +
           '<div class="cmp n' + list.length + '" style="--n:' + list.length + '">' + grid + '</div>' +
-          (list.length < 3 ? '<button class="btn ghost wide add-more" data-act="c-new">' + IL.icon('plus') + '다른 구성 담기</button>' : ''),
+          '<div class="cmp-btns">' +
+          (list.length < 3 ? '<button class="btn ghost add-more" data-act="c-new">' + IL.icon('plus') + '다른 구성 담기</button>' : '') +
+          '<button class="btn ghost" id="saveImgBtn" data-act="c-save">' + IL.icon('save') + '이미지로 저장</button></div>',
         noCart: true,
         scrollKey: 'cmp'
       };
@@ -874,7 +876,7 @@
       '<div class="modal-btns"><button class="btn ghost" data-act="modal-close">계속 보기</button>' +
       '<button class="btn primary" data-act="finish-yes">상담 마치기</button></div>');
   };
-  A['finish-yes'] = function () { SB.resetSession(true); };
+  A['finish-yes'] = function () { SB.resetSession(true, true); };
 
   // 터치스크린의 가격판에서 가격을 누르면 그 시간대·기간으로 이용권 설계를 연다.
   // 레슨·락커처럼 이미 고른 내용은 그대로 두고, 아직 안 고른 첫 단계로 간다.
@@ -895,5 +897,139 @@
     return true;
   };
 
-  SB.builder = { selOf: selOf, discountAvailable: discountAvailable, useSale: useSale };
+  // 패키지 안내 화면에서 추천 패키지를 누르면: 그 시간대·기간·15분 레슨으로 견적 단계를 연다.
+  SB.pickPackage = function (slot, months, count) {
+    if (!P.SLOTS[slot] || P.MONTHS.indexOf(months) < 0 || P.LESSON_COUNTS.indexOf(count) < 0) return false;
+    var b = SB.S.b;
+    b.editing = null; b.walk = false;
+    b.slot = slot; b.kind = 'membership'; b.tab = 'membership'; b.months = months;
+    b.lessonMin = 15; b.lessonCount = count; b.lessonDone = true;
+    if (!b.lockerDone) { b.locker = null; b.lockerDone = true; }
+    b.step = 5;
+    SB.sfx('click');
+    SB.go('builder');
+    return true;
+  };
+
+  /*
+   * 비교함을 이미지(PNG)로 저장한다. 화면을 찍는 것이 아니라 같은 값을 그림판(canvas)에 표로 다시 그린다.
+   * 외부 도구 없이 오프라인에서도 되고, 화면 크기와 상관없이 같은 모양으로 나온다.
+   * 금액은 화면과 똑같이 SBPricing의 quote·compare 값을 쓴다(지금 보이는 기준: 원가 또는 할인가).
+   */
+  function compareCanvas() {
+    var list = SB.S.compare, on = useSale();
+    var qs = list.map(function (c) { return quoteOf(c.sel); });
+    var cmp = P.compare(qs, on);
+    var doc = root.document, css = root.getComputedStyle(doc.documentElement);
+    function tok(name, fallback) { return (css.getPropertyValue(name) || '').trim() || fallback; }
+    var C = {
+      ink: tok('--ink', '#0F2740'), mute: tok('--mute', '#5A6F86'), line: tok('--line', '#C7DBF0'), surface: tok('--surface', '#F3F8FE'),
+      raised: tok('--raised', '#E3F0FF'), primary: tok('--primary', '#1A6FE0'), deep: tok('--primary-deep', '#0E56B8'), sale: tok('--sale', '#DE3B2B'),
+      slot: [null, tok('--slot1-ink', '#0B7FC0'), tok('--slot2-ink', '#0B857A'), tok('--slot3-ink', '#4B48C9')]
+    };
+    var n = list.length, W = 1200, PAD = 56, LW = 200, CW = (W - PAD * 2 - LW) / n, GAP = 10;
+    var rows = [
+      { label: '시간대', h: 84, cell: function (c) { return c.sel.kind === 'membership' ? { text: P.SLOTS[c.sel.slot].name + '  ' + P.SLOTS[c.sel.slot].range, color: C.slot[c.sel.slot] } : { text: '구분 없음', color: C.mute, weight: 500 }; } },
+      { label: '기간', h: 84, cell: function (c) { return { text: periodText(c.sel) }; } },
+      { label: '레슨', h: 100, cell: function (c, q) { return q.lesson ? { text: q.lesson.min + '분 ' + q.lesson.count + '회', sub: (q.lesson.mode === 'pkg' ? '패키지가' : '단독가') + ' · 유효 ' + q.lesson.validityMonths + '개월' } : { text: '없음', color: C.mute, weight: 500 }; } },
+      { label: '락커', h: 84, cell: function (c) { return c.sel.locker ? { text: P.LOCKERS[c.sel.locker] } : { text: '안 씀', color: C.mute, weight: 500 }; } },
+      { label: '합계', h: 132, fill: C.raised, cell: function (c, q) {
+        var sale = on && q.hasAnySale;
+        return { text: P.fmt(P.view(q, on).total) + '원', size: 42, color: sale ? C.sale : C.ink, strike: sale ? P.fmt(q.total) + '원' : '' };
+      } },
+      { label: '한 달에 얼마?', h: 84, cell: function (c, q, i) { return { text: P.fmt(cmp.monthlies[i]) + '원' }; } },
+      { label: '레슨 1회당', h: 84, cell: function (c, q) { return q.lesson ? { text: P.fmt(P.view(q, on).perSession) + '원' } : { text: '-', color: C.mute, weight: 500 }; } },
+      { label: '최저가 대비', h: 84, cell: function (c, q, i) {
+        if (n < 2) return { text: '-', color: C.mute, weight: 500 };
+        return cmp.diffs[i] === 0 ? { text: '최저가', color: C.deep } : { text: '+' + P.fmt(cmp.diffs[i]) + '원' };
+      } }
+    ];
+    var HEAD = 206, NAME = 128, FOOT = 64;
+    var H = HEAD + NAME + rows.reduce(function (s, r) { return s + r.h; }, 0) + FOOT;
+    var canvas = doc.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    var g = canvas.getContext('2d');
+    function font(weight, px) { return weight + ' ' + px + 'px "Pretendard Variable", Pretendard, "Noto Sans KR", "Malgun Gothic", sans-serif'; }
+    // 칸 너비에 맞게 글자 크기를 줄여 가며 쓴다.
+    function put(text, x, y, maxW, weight, px, color, align) {
+      g.textAlign = align || 'left'; g.textBaseline = 'middle'; g.fillStyle = color;
+      do { g.font = font(weight, px); px -= 1; } while (g.measureText(text).width > maxW && px > 13);
+      g.fillText(text, x, y);
+      return g.measureText(text).width;
+    }
+    g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, W, H);
+    var t = SB.cfg.texts, d = new Date();
+    put(t.brand + '  ' + t.branch, PAD, 62, W - PAD * 2, 800, 22, C.deep);
+    put('이용권 비교', PAD, 118, W - PAD * 2, 800, 50, C.ink);
+    put(d.getFullYear() + '. ' + (d.getMonth() + 1) + '. ' + d.getDate() + '.  ' + (on ? '할인가 기준' : '원가 기준'), PAD, 170, W - PAD * 2, 500, 24, C.mute);
+    g.fillStyle = C.ink; g.fillRect(PAD, HEAD - 6, W - PAD * 2, 3);
+    function colX(i) { return PAD + LW + CW * i; }
+    // 이름 줄: 안 이름과 배지
+    list.forEach(function (c, i) {
+      var x = colX(i) + GAP / 2, w = CW - GAP;
+      g.fillStyle = C.surface; g.fillRect(x, HEAD, w, NAME);
+      g.fillStyle = C.primary; g.fillRect(x, HEAD, w, 5);
+      put(c.name, x + 18, HEAD + 46, w - 36, 800, 36, C.ink);
+      var badges = [];
+      if (cmp.cheapest[i]) badges.push('가장 저렴해요');
+      if (cmp.bestMonthly[i]) badges.push('한 달 기준 가장 알뜰해요');
+      var bx = x + 18;
+      badges.forEach(function (b, k) {
+        g.font = font(800, 18);
+        var bw = Math.min(g.measureText(b).width + 20, w - 36 - (bx - x - 18));
+        if (bw < 60) return;
+        g.fillStyle = k === 0 && cmp.cheapest[i] ? C.primary : '#FFFFFF';
+        g.fillRect(bx, HEAD + 80, bw, 32);
+        if (!(k === 0 && cmp.cheapest[i])) { g.strokeStyle = C.primary; g.lineWidth = 2; g.strokeRect(bx + 1, HEAD + 81, bw - 2, 30); }
+        put(b, bx + 10, HEAD + 97, bw - 20, 800, 18, k === 0 && cmp.cheapest[i] ? '#FFFFFF' : C.deep);
+        bx += bw + 8;
+      });
+    });
+    var y = HEAD + NAME;
+    rows.forEach(function (r) {
+      put(r.label, PAD + 4, y + r.h / 2, LW - 16, 600, 22, C.mute);
+      list.forEach(function (c, i) {
+        var x = colX(i) + GAP / 2, w = CW - GAP, v = r.cell(c, qs[i], i);
+        g.fillStyle = r.fill || C.surface; g.fillRect(x, y, w, r.h);
+        var mid = y + r.h / 2;
+        if (v.strike) {
+          var sw = put(v.strike, x + 18, mid - 30, w - 36, 500, 22, C.mute);
+          g.fillStyle = C.mute; g.fillRect(x + 18, mid - 30, sw, 2);
+          put(v.text, x + 18, mid + 14, w - 36, 800, v.size || 28, v.color || C.ink);
+        } else if (v.sub) {
+          put(v.text, x + 18, mid - 14, w - 36, v.weight || 800, v.size || 28, v.color || C.ink);
+          put(v.sub, x + 18, mid + 22, w - 36, 500, 19, C.mute);
+        } else {
+          put(v.text, x + 18, mid, w - 36, v.weight || 800, v.size || 28, v.color || C.ink);
+        }
+      });
+      g.fillStyle = C.line; g.fillRect(PAD, y + r.h - 1, W - PAD * 2, 1);
+      y += r.h;
+    });
+    g.fillStyle = C.ink; g.fillRect(PAD, y, W - PAD * 2, 3);
+    return canvas;
+  }
+  A['c-save'] = function () {
+    if (!SB.S.compare.length) return;
+    var doc = root.document, canvas, d = new Date();
+    function two(v) { return (v < 10 ? '0' : '') + v; }
+    var name = '스윙블랙_이용권비교_' + d.getFullYear() + two(d.getMonth() + 1) + two(d.getDate()) + '_' + two(d.getHours()) + two(d.getMinutes()) + '.png';
+    function fail() { SB.sfx('warn'); SB.toast('이미지를 만들지 못했습니다. 다시 눌러 주세요'); }
+    try { canvas = compareCanvas(); } catch (e) { fail(); return; }
+    if (!canvas.toBlob) { fail(); return; }
+    canvas.toBlob(function (blob) {
+      if (!blob) { fail(); return; }
+      var url = root.URL.createObjectURL(blob), a = doc.createElement('a');
+      a.href = url; a.download = name; a.style.display = 'none';
+      doc.body.appendChild(a);
+      a.click();
+      a.remove();
+      root.setTimeout(function () { root.URL.revokeObjectURL(url); }, 60000);
+      SB.lastImage = { name: name, width: canvas.width, height: canvas.height, size: blob.size };
+      SB.sfx('confirm');
+      SB.toast('비교함을 이미지로 저장했습니다. 다운로드 폴더에서 볼 수 있습니다', 3600);
+    }, 'image/png');
+  };
+
+  SB.builder = { selOf: selOf, discountAvailable: discountAvailable, useSale: useSale, PRESETS: PRESETS, compareCanvas: compareCanvas };
 })(typeof self !== 'undefined' ? self : this);

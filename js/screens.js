@@ -259,8 +259,50 @@
     SB.playIntro();
   };
 
-  // ---------- 홈 ----------
+  // ---------- 홈 (2026-11-12 사용자 결정: 매우 심플하게) ----------
+  // 위에서부터 큰 문구, 24H(지금 열려 있음), 가로로 긴 큰 버튼 세 개. 버튼은 숫자, 그림, 글자 순서다.
+  // 큰 문구 위에는 로고·비교함·자막 줄을 두지 않고, 오른쪽 위에 음소거와 처음부터 아이콘만 둔다.
+  // 숨은 길: 큰 문구(스윙블랙)를 길게 누르면 관리자 페이지, 24H를 길게 누르면 예전 홈 화면(classic).
+  function nowBlock(hold) {
+    return '<div class="now">' +
+      '<div class="now-head">' + (hold
+        ? '<button class="b24 b24-btn" data-longpress="classic-open" aria-label="24시간 운영">24H</button>'
+        : '<span class="b24">24H</span>') +
+      '<p>지금 <b id="nowText">' + nowText() + '</b>, 열려 있습니다</p></div>' +
+      '<div id="nowRail">' + IL.rail({ ranges: [{ from: 0, to: 24, cls: 'open' }], now: nowHour() }) + '</div>' +
+      '<p class="now-note">오픈 시간이 따로 없어 사람이 몰리지 않습니다. 새벽 출근 전에도, 퇴근 후 심야에도 원하는 시간에 오세요.</p>' +
+      '</div>';
+  }
+  var HOME_MENU = [
+    ['menu', 'menubook', '멤버십 레슨권 메뉴북'],
+    ['package', 'package', '패키지 안내'],
+    ['lesson', 'lesson', '레슨 프로 소개']
+  ];
   SB.screens.home = {
+    render: function () {
+      var cfg = SB.cfg, t = cfg.texts;
+      var promos = cfg.promos.filter(function (p) { return Store.activeToday(p) && p.text; });
+      return {
+        slimTop: true, // 큰 문구 위에는 음소거·처음부터 아이콘만 둔다
+        html: '<h1 class="home-title" data-longpress="admin-open">' + esc(t.homeTitle) + '</h1>' +
+          nowBlock(true) +
+          (promos.length ? '<div class="promos">' + promos.map(function (p) {
+            return '<div class="promo">' + esc(p.text) + '</div>';
+          }).join('') + '</div>' : '') +
+          '<nav class="menu3">' + HOME_MENU.map(function (m, i) {
+            return '<button class="m3" data-act="go" data-to="' + m[0] + '"><span class="m3-n">' + (i + 1) + '</span>' +
+              IL.art(m[1]) + '<b>' + m[2] + '</b>' + IL.icon('next') + '</button>';
+          }).join('') + '</nav>'
+      };
+    }
+  };
+  A['classic-open'] = function () {
+    SB.sfx('click');
+    SB.go('classic');
+  };
+
+  // ---------- 예전 홈 화면: 홈의 24H를 길게 누르면 열린다(이용권 설계, 시설 소개, 레슨·프로, 이용 안내) ----------
+  SB.screens.classic = {
     render: function () {
       var cfg = SB.cfg, t = cfg.texts;
       var promos = cfg.promos.filter(function (p) { return Store.activeToday(p) && p.text; });
@@ -269,11 +311,7 @@
         html: '<section class="hero">' +
           '<p class="hero-sub">' + esc(t.slogan1) + '</p>' +
           '<h1 class="hero-title">' + esc(t.slogan2) + '</h1>' +
-          '<div class="now">' +
-          '<div class="now-head"><span class="b24">24H</span><p>지금 <b id="nowText">' + nowText() + '</b>, 열려 있습니다</p></div>' +
-          '<div id="nowRail">' + IL.rail({ ranges: [{ from: 0, to: 24, cls: 'open' }], now: nowHour() }) + '</div>' +
-          '<p class="now-note">오픈 시간이 따로 없어 사람이 몰리지 않습니다. 새벽 출근 전에도, 퇴근 후 심야에도 원하는 시간에 오세요.</p>' +
-          '</div></section>' +
+          nowBlock(false) + '</section>' +
           (promos.length ? '<div class="promos">' + promos.map(function (p) {
             return '<div class="promo">' + esc(p.text) + '</div>';
           }).join('') + '</div>' : '') +
@@ -296,9 +334,9 @@
       };
     }
   };
-  // 홈의 현재 시각 표시를 갱신한다.
+  // 홈과 예전 홈 화면의 현재 시각 표시를 갱신한다.
   root.setInterval(function () {
-    if (SB.S.screen !== 'home') return;
+    if (SB.S.screen !== 'home' && SB.S.screen !== 'classic') return;
     var text = doc.getElementById('nowText'), rail = doc.querySelector('#nowRail .rail-now');
     if (text) text.textContent = nowText();
     if (rail) rail.style.left = (nowHour() / 24 * 100) + '%';

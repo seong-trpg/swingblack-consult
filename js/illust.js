@@ -80,7 +80,17 @@
       '<path class="sg" d="M88 30l-52 96" stroke-width="3" opacity=".45"/>'
   };
 
+  // 홈의 큰 버튼 그림: 메뉴북(펼친 책), 패키지(겹친 카드 두 장과 더하기)
+  art.menubook = '<path class="fp" d="M12 28q24-10 48 0v64q-24-10-48 0z"/><path class="fp" d="M60 28q24-10 48 0v64q-24-10-48 0z"/>' +
+    '<path class="sg" d="M12 28q24-10 48 0q24-10 48 0v64q-24-10-48 0q-24-10-48 0z"/><path class="sg" d="M60 28v64"/>' +
+    '<path class="sb" d="M24 44q12-4 24 0M24 58q12-4 24 0M72 44q12-4 24 0M72 58q12-4 24 0"/><circle class="fg" cx="84" cy="76" r="6"/>';
+  art.package = '<rect class="fp" x="10" y="34" width="58" height="62" rx="8"/><rect class="sg" x="10" y="34" width="58" height="62" rx="8"/>' +
+    '<path class="sb" d="M22 52h30M22 66h20"/>' +
+    '<rect class="fg" x="52" y="46" width="58" height="62" rx="8"/><path class="sd" d="M66 66h30M66 80h20"/>' +
+    '<circle class="fw" cx="60" cy="30" r="14"/><path class="sw" d="M60 22v16M52 30h16"/>';
+
   var ui = {
+    save: '<path d="M12 4v11M7 11l5 5 5-5"/><path d="M5 20h14"/>',
     back: '<path d="M15 5l-7 7 7 7"/>',
     cart: '<path d="M4 6h3l2 10h9l2-7H8"/><circle cx="10" cy="19.5" r="1.2"/><circle cx="17" cy="19.5" r="1.2"/>',
     sound: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',

@@ -33,6 +33,34 @@
       walk: false // '다른 구성 더 담기' 뒤 1단계부터 한 단계씩 넘어가는 중인지
     };
   }
+  /*
+   * 비교함 유지 (2026-11-12 사용자 결정).
+   * 비교함에 담은 구성은 '처음부터 다시'(또는 상담 마치기)를 누르기 전까지 지우지 않는다.
+   * 앱을 껐다 켜도, 조작 없이 오래 두어 처음 화면으로 돌아가도 남아 있어야 하므로 기기 저장소에 적어 둔다.
+   * 설정이 아니라 상담 중 임시 데이터라 SBStore(설정·변경 이력)가 아닌 별도 키를 쓴다.
+   */
+  var KEEP_KEY = 'swingblack.compare.v1';
+  var keptJson = null;
+  function loadCompare() {
+    try {
+      var list = JSON.parse(root.localStorage.getItem(KEEP_KEY) || '[]');
+      if (!Array.isArray(list)) return [];
+      // 가격표가 바뀌어 더는 계산할 수 없는 구성은 버린다.
+      return list.filter(function (c) {
+        if (!c || !c.id || !c.name || !c.sel) return false;
+        try { P.quote(c.sel, cfg); return true; } catch (e) { return false; }
+      }).slice(0, 3);
+    } catch (e) { return []; }
+  }
+  function saveCompare() {
+    try {
+      var json = JSON.stringify(S.compare);
+      if (json === keptJson) return;
+      root.localStorage.setItem(KEEP_KEY, json);
+      keptJson = json;
+    } catch (e) { /* 저장소를 쓸 수 없으면 이번 실행 동안만 유지된다 */ }
+  }
+
   function freshSession() {
     return {
       screen: 'start', hist: [], b: freshBuilder(), compare: [],
@@ -40,6 +68,7 @@
     };
   }
   var S = freshSession();
+  S.compare = loadCompare();
 
   function esc(s) {
     return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -159,6 +188,14 @@
 
   // ----- 화면 -----
   function header(out) {
+    // 홈 화면: 큰 문구 위에는 아무것도 두지 않고, 오른쪽 위에 음소거와 처음부터 아이콘만 둔다(2026-11-12 사용자 결정).
+    // 로고, 비교함, 자막 줄은 다른 화면의 상단 바에만 있다.
+    if (out.slimTop) {
+      return '<header class="top slim">' +
+        '<button class="tbtn icon" data-act="sound" aria-label="' + (muted ? '소리 켜기' : '음소거') + '">' + IL.icon(muted ? 'mute' : 'sound') + '</button>' +
+        '<button class="tbtn icon" data-act="restart" aria-label="처음부터">' + IL.icon('reset') + '</button>' +
+        '</header>';
+    }
     var n = S.compare.length;
     var showBack = S.screen !== 'home';
     return '<header class="top">' +
@@ -201,6 +238,7 @@
     lastScrollKey = key;
     roll($app);
     if (def.after) def.after($app);
+    saveCompare(); // 비교함이 바뀌면 화면을 다시 그리므로 여기서 한 번에 적어 둔다
   }
 
   function go(screen, opt) {
@@ -226,11 +264,14 @@
     go(prev || 'home', { replace: true });
   }
 
-  function resetSession(toStart) {
+  // toStart: 처음 화면(안내 음성 고르기)으로 갈지. clearCompare: 비교함도 지울지('처음부터 다시', 상담 마치기에서만 참).
+  function resetSession(toStart, clearCompare) {
     V.stop();
     closeModal();
     hideIdle();
+    var kept = clearCompare ? [] : S.compare;
     S = freshSession();
+    S.compare = kept;
     capText = ''; capLive = false;
     rollPrev = {};
     if (toStart) muted = false; // 다음 고객은 관리자가 정한 소리 기본값으로 시작한다
@@ -288,7 +329,7 @@
     bar.querySelector('button').disabled = !capText;
   }
 
-  // ----- 무조작 초기화: 앞 고객의 구성이 다음 고객에게 보이지 않게 한다 -----
+  // ----- 무조작 초기화: 오래 조작이 없으면 처음 화면으로 돌아간다. 고르던 내용은 지우지만 비교함은 남긴다 -----
   function hideIdle() { if ($idle) $idle.classList.remove('show'); }
   function idleTick() {
     var sec = +cfg.settings.idleSec || 0;
@@ -415,7 +456,7 @@
   // 처음부터: 고른 내용을 지우고 처음 화면(안내 음성 고르기)으로 돌아간다. 음성을 고르면 인트로부터 다시 시작한다.
   // (2026-11-11 사용자 결정. 그 전에는 음성 선택 없이 인트로부터 바로 다시 시작했다.)
   SB.actions['restart-yes'] = function () {
-    resetSession(true);
+    resetSession(true, true);
   };
 
   root.SBApp = SB;

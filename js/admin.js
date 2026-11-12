@@ -162,7 +162,8 @@
     var d = ad.draft;
     var html = '<section class="ad-group"><h3>브랜드와 홈 화면</h3>' +
       '<div class="row2">' + field('브랜드명', 'texts/brand') + field('지점명', 'texts/branch') + '</div>' +
-      field('홈 슬로건 1', 'texts/slogan1') + field('홈 슬로건 2', 'texts/slogan2') +
+      field('홈 화면 큰 문구', 'texts/homeTitle', { help: '인트로가 끝난 뒤 홈 화면 맨 위에 큰 글씨로 나옵니다.' }) +
+      field('슬로건 1', 'texts/slogan1') + field('슬로건 2', 'texts/slogan2') +
       field('이용권 설계 문구', 'texts/builderTagline') + field('다짐 문구', 'texts/pledge') + '</section>' +
       '<section class="ad-group"><h3>' + d.texts.promises.length + '가지 약속</h3>' + d.texts.promises.map(function (p, i) {
         return field((i + 1) + '번', 'texts/promises/' + i);
@@ -251,7 +252,7 @@
       '<p class="ad-help">직원이 직접 설명할 때는 AI 보이스를 꺼 두면 설명과 겹치지 않습니다. 자막은 계속 보입니다.</p></section>' +
       '<section class="ad-group"><h3>무조작 초기화</h3>' +
       field('조작이 없으면 처음 화면으로 돌아가는 시간 (초, 0이면 끔)', 'settings/idleSec', { type: 'num' }) +
-      '<p class="ad-help">앞 고객의 비교함과 할인 적용 상태가 다음 고객에게 보이지 않도록 지웁니다.</p></section>' +
+      '<p class="ad-help">고르던 내용과 할인 적용 상태를 지우고 처음 화면으로 돌아갑니다. 비교함에 담은 구성은 지우지 않습니다. 비교함은 처음부터 다시나 상담 마치기를 눌러야 지워집니다.</p></section>' +
       '<section class="ad-group"><h3>관리자 PIN</h3><div class="row2">' +
       '<label class="fl"><span>새 PIN (숫자 4~8자리)</span><input class="field" id="newPin1" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></label>' +
       '<label class="fl"><span>새 PIN 다시 입력</span><input class="field" id="newPin2" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></label></div>' +
