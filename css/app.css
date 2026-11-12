@@ -510,30 +510,47 @@ textarea.field { resize: vertical; line-height: 1.5; }
 .m3 b { font-size: 1.7rem; font-weight: 800; line-height: 1.25; }
 .m3 > .ic { width: 1.8rem; height: 1.8rem; color: var(--mute); }
 
-/* ---------- 메뉴북, 패키지 안내 ---------- */
-.sec.flat { margin-top: 0.4rem; padding-top: 0; border-top: 0; }
-.sec small { margin-left: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--mute); }
-.sheet.mb thead th b { display: block; font-size: 1rem; font-weight: 800; color: var(--ink); }
-.sheet.mb thead th small { display: block; font-size: 0.7rem; font-weight: 600; }
-.sheet.mb tbody th { font-size: 1.05rem; }
-.sheet.mb .r > em { font-size: 0.72rem; }
-.sheet.mb .r > em.tag.more { display: inline-block; margin-left: 0.4rem; font-size: 0.72rem; font-weight: 700; color: var(--bg); vertical-align: middle; }
-.sheet.mb td:has(> .mb-pick) { padding: 0; }
-.mb-pick { display: block; width: 100%; min-height: 3.6rem; padding: 0.55rem 0.4rem; text-align: right; border-radius: var(--r-data); transition: background 0.2s; }
-.mb-pick:active { background: var(--raised); }
-.mb-pick b { font-size: 1.15rem; font-weight: 800; }
-.mb-pick s { display: block; font-size: 0.8rem; color: var(--mute); }
-.mb-pick em { display: block; font-style: normal; font-size: 0.72rem; color: var(--mute); white-space: pre; }
-.mb-note { margin: 0.9rem 0 0; align-items: center; }
-.mb-note .link { min-height: 2.4rem; }
-.pk-eq { display: grid; grid-template-columns: 1fr auto 1fr auto 1.3fr; align-items: stretch; gap: 0.6rem; margin: 0.4rem 0 0; }
-.pk-eq div { padding: 0.9rem 0.8rem; border-radius: var(--r-card); border: 1px solid var(--line); background: var(--bg); text-align: center; }
-.pk-eq div.on { border: 2px solid var(--primary); background: var(--surface); }
-.pk-eq b { display: block; font-size: 1.25rem; font-weight: 800; }
-.pk-eq div.on b { color: var(--primary-deep); }
-.pk-eq span { font-size: 0.8rem; color: var(--mute); }
-.pk-eq i { align-self: center; font-style: normal; font-size: 1.6rem; font-weight: 800; color: var(--primary); }
-.scr-package .pkg-grid .choice.pkg { background: var(--bg); }
+/* ---------- 메뉴북, 패키지 안내: 가격표 이미지 두 장을 옆으로 넘겨 본다 ----------
+   가운데 장은 또렷하게, 옆 장은 살짝 걸쳐 흐리게 보여 넘길 수 있는 두 장임을 알린다. */
+.scr-menu .main, .scr-package .main { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.pg { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--surface); }
+/* 이 화면에는 상단 바가 없다. 왼쪽 위의 뒤로 아이콘 하나로 나간다(장 옆의 빈 자리에 놓여 이미지를 가리지 않는다). */
+.pg-back {
+  position: absolute; left: 0.5rem; top: 0.6rem; z-index: 2; width: 3rem; height: 3rem; border-radius: 50%;
+  display: grid; place-items: center; background: var(--bg); border: 1px solid var(--line); color: var(--ink);
+  box-shadow: 0 0.3rem 0.9rem rgba(15, 39, 64, 0.14);
+}
+.pg-back:active { background: var(--raised); }
+.pg-back .ic { width: 1.5rem; height: 1.5rem; stroke-width: 2.6; }
+.pg-track {
+  flex: 1; min-height: 0; display: flex; align-items: center; gap: 0.9rem; padding: 1rem max(9%, 3.9rem) 0.4rem; /* 옆 여백은 뒤로 버튼 폭보다 넓게: 버튼이 이미지를 가리지 않는다 */
+  overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+  scrollbar-width: none; container-type: size;
+}
+.pg-track::-webkit-scrollbar { display: none; }
+/* 장의 크기: 높이에 맞추되 폭이 넘치지 않게(cqw·cqh = 장을 놓는 자리의 폭·높이) */
+.pg-slide {
+  flex: none; width: min(100cqw, calc(100cqh * var(--ar))); aspect-ratio: var(--ar); padding: 0;
+  scroll-snap-align: center; border-radius: var(--r-card); overflow: hidden; background: var(--bg);
+  box-shadow: 0 0.7rem 1.8rem rgba(15, 39, 64, 0.18);
+  transform: scale(0.95); opacity: 0.6; transition: transform 0.3s, opacity 0.3s;
+}
+.pg-slide:first-child { margin-left: auto; }
+.pg-slide:last-child { margin-right: auto; }
+.pg-slide.on { transform: none; opacity: 1; }
+.pg-slide img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.pg-bar { flex: none; display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0.5rem var(--pad) 0.8rem; }
+.pg-nav { width: 3.2rem; height: 3.2rem; border-radius: 50%; display: grid; place-items: center; background: var(--bg); border: 2px solid var(--line); color: var(--primary-deep); }
+.pg-nav:active:not(:disabled) { background: var(--raised); }
+.pg-nav .ic { width: 1.5rem; height: 1.5rem; stroke-width: 2.6; }
+.pg-dots { display: flex; gap: 0.45rem; }
+.pg-dots i { width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--line); transition: width 0.25s, background 0.25s; }
+.pg-dots i.on { width: 2rem; border-radius: 0.4rem; background: var(--primary); }
+.pg-count { min-width: 3.2rem; font-size: 1rem; font-weight: 600; color: var(--mute); white-space: nowrap; }
+.pg-count b { font-size: 1.25rem; font-weight: 800; color: var(--ink); }
+/* 두 장이 한 화면에 다 들어오는 넓은 화면에서는 넘길 것이 없어 장 표시를 숨긴다 */
+.pg.fit .pg-bar { display: none; }
+.pg.fit .pg-track { padding-bottom: 1rem; }
 .cmp-btns { display: flex; gap: 0.6rem; margin-top: 1.2rem; }
 .cmp-btns .btn { flex: 1; margin-top: 0; }
 
@@ -932,7 +949,7 @@ html.kiosk .app { max-width: none; }
 html.kiosk .top { min-height: 3.3rem; padding-top: 0.3rem; padding-bottom: 0.3rem; }
 html.kiosk .capbar { height: 2.9rem; }
 html.kiosk .main { padding: 1.1rem 1.8rem 1.8rem; }
-html.kiosk .scr-start .main, html.kiosk .scr-intro .main { padding: 0; }
+html.kiosk .scr-start .main, html.kiosk .scr-intro .main, html.kiosk .scr-menu .main, html.kiosk .scr-package .main { padding: 0; }
 html.kiosk .q-sub { margin-bottom: 0.8rem; }
 html.kiosk .start-24 { margin-top: 1.6rem; }
 html.kiosk .start-pick { margin-top: 2.2rem; }
@@ -1022,9 +1039,6 @@ html.kiosk .toast { bottom: 5rem; }
   .m3-n { font-size: 2.4rem; }
   .m3 .il { width: 3.6rem; height: 3.6rem; }
   .m3 b { font-size: 1.3rem; }
-  .pk-eq { grid-template-columns: 1fr auto 1fr; }
-  .pk-eq i:last-of-type { display: none; }
-  .pk-eq div.on { grid-column: 1 / -1; }
   .cmp-btns { flex-direction: column; }
   .start-voice b { font-size: 1.2rem; }
   .tbtn span { display: none; }

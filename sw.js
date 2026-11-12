@@ -3,14 +3,15 @@
  * 앱 파일을 고치면 아래 VERSION을 올린다. 올리지 않으면 태블릿이 예전 화면을 보여 줄 수 있다.
  * 온라인일 때는 새 파일을 먼저 받고, 인터넷이 끊기면 저장해 둔 파일로 동작한다.
  */
-const VERSION = 'swingblack-v27';
+const VERSION = 'swingblack-v29';
 // 캐시 이름에 이 사이트의 주소를 붙인다. 탭용과 터치스크린용 사이트가 같은 github.io 주소 아래에 있어
 // 저장 공간을 함께 쓰므로, 서로의 저장분을 지우지 않게 하기 위함이다.
 const SITE = '|' + self.registration.scope;
 const CACHE = VERSION + SITE;
 // 실제 사진: assets/images/ 에 실제로 있는 파일만 적는다.
 const PHOTOS = [
-  'pros/song-wonmin.webp', 'pros/song-wonmin-full.webp', 'pros/son-jimin.webp', 'pros/son-jimin-full.webp'
+  'pros/song-wonmin.webp', 'pros/song-wonmin-full.webp', 'pros/son-jimin.webp', 'pros/son-jimin-full.webp',
+  'menu/membership.webp', 'menu/lesson.webp', 'menu/package-pick.webp', 'menu/package-all.webp'
 ].map((p) => 'assets/images/' + p);
 // 음성 파일: assets/audio/voice/female/ 와 male/ 에 실제로 있는 파일만 적는다(없는 파일을 적으면 설치가 실패한다).
 // 여성·남성 두 묶음 모두 같은 멘트 파일을 갖춰야 한다. 한쪽에만 없는 파일이 생기면 그 묶음의 목록에서 뺀다.

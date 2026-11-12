@@ -897,20 +897,6 @@
     return true;
   };
 
-  // 패키지 안내 화면에서 추천 패키지를 누르면: 그 시간대·기간·15분 레슨으로 견적 단계를 연다.
-  SB.pickPackage = function (slot, months, count) {
-    if (!P.SLOTS[slot] || P.MONTHS.indexOf(months) < 0 || P.LESSON_COUNTS.indexOf(count) < 0) return false;
-    var b = SB.S.b;
-    b.editing = null; b.walk = false;
-    b.slot = slot; b.kind = 'membership'; b.tab = 'membership'; b.months = months;
-    b.lessonMin = 15; b.lessonCount = count; b.lessonDone = true;
-    if (!b.lockerDone) { b.locker = null; b.lockerDone = true; }
-    b.step = 5;
-    SB.sfx('click');
-    SB.go('builder');
-    return true;
-  };
-
   /*
    * 비교함을 이미지(PNG)로 저장한다. 화면을 찍는 것이 아니라 같은 값을 그림판(canvas)에 표로 다시 그린다.
    * 외부 도구 없이 오프라인에서도 되고, 화면 크기와 상관없이 같은 모양으로 나온다.
@@ -1031,5 +1017,5 @@
     }, 'image/png');
   };
 
-  SB.builder = { selOf: selOf, discountAvailable: discountAvailable, useSale: useSale, PRESETS: PRESETS, compareCanvas: compareCanvas };
+  SB.builder = { selOf: selOf, discountAvailable: discountAvailable, useSale: useSale, compareCanvas: compareCanvas };
 })(typeof self !== 'undefined' ? self : this);

@@ -288,29 +288,6 @@
     };
   }
 
-  /*
-   * 레슨권 표(메뉴북·패키지 안내 화면): 분 × 횟수마다 단독가와 패키지가.
-   *   [{ min, rows: [{ count, solo, pkg, saving, extraMonths }] }]
-   *   solo·pkg = { price, shown, onSale, perSession, validity }  (shown은 지금 보여 줄 금액, perSession은 1회당)
-   *   saving = 단독가 − 패키지가(원가 기준, 0 이상), extraMonths = 패키지가 단독보다 더 주는 레슨 기간
-   */
-  function lessonTable(cfg, useSale) {
-    return LESSON_MINUTES.map(function (min) {
-      return {
-        min: min,
-        rows: LESSON_COUNTS.map(function (count) {
-          function one(mode) {
-            var p = pair(cfg.items, mode + '.' + min + '.' + count);
-            var on = !!useSale && p.hasSale, shown = on ? p.sale : p.price;
-            return { price: p.price, shown: shown, onSale: on, perSession: Math.round(shown / count), validity: cfg.validity[mode][count] };
-          }
-          var solo = one('solo'), pkg = one('pkg');
-          return { count: count, solo: solo, pkg: pkg, saving: Math.max(0, solo.price - pkg.price), extraMonths: packageExtraMonths(count, cfg) };
-        })
-      };
-    });
-  }
-
   function fmt(n) {
     return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
@@ -383,7 +360,7 @@
     isPackageEligible: isPackageEligible, periodMonths: periodMonths, describe: describe,
     packageExtraMonths: packageExtraMonths, packageExtraList: packageExtraList,
     quote: quote, view: view, compare: compare,
-    breakevenDays: breakevenDays, repeatOneMonth: repeatOneMonth, longTermNote: longTermNote, board: board, lessonTable: lessonTable,
+    breakevenDays: breakevenDays, repeatOneMonth: repeatOneMonth, longTermNote: longTermNote, board: board,
     fmt: fmt, won: won, numToKorean: numToKorean, wonSpoken: wonSpoken,
     validateItems: validateItems, bulkSale: bulkSale, hasAnySaleItem: hasAnySaleItem
   };
